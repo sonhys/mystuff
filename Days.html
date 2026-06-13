@@ -424,10 +424,12 @@ function sectionOf(d){
   const endOfMonth=new Date(td.getFullYear(),td.getMonth()+1,0); endOfMonth.setHours(0,0,0,0);
   const daysToEOM=Math.round((endOfMonth-td)/86400000);
   if(d<=daysToEOM) return 'Later this month';
-  const td2=new Date(td); td2.setMonth(td2.getMonth()+1);
-  const endOfNextMonth=new Date(td2.getFullYear(),td2.getMonth()+1,0); endOfNextMonth.setHours(0,0,0,0);
-  const daysToENM=Math.round((endOfNextMonth-td)/86400000);
-  if(d<=daysToENM) return 'Next month';
+  const nextMonthEnd=new Date(td.getFullYear(),td.getMonth()+2,0); nextMonthEnd.setHours(0,0,0,0);
+  const daysToNME=Math.round((nextMonthEnd-td)/86400000);
+  if(d<=daysToNME) return 'Next month';
+  const endOfYear=new Date(td.getFullYear(),11,31); endOfYear.setHours(0,0,0,0);
+  const daysToEOY=Math.round((endOfYear-td)/86400000);
+  if(d<=daysToEOY) return 'Later this year';
   return 'Next year';
 }
 
