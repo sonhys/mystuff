@@ -193,7 +193,8 @@
     background:var(--bg2);padding:6px 16px;margin:0 -16px;
     border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);
     letter-spacing:.1px}
-  .sec-header:first-child{border-top:none;margin-top:-12px}
+  .sec-header:first-child{border-top:none;margin-top:0}
+  .panel.active{padding-top:0}
 
   /* List row (upcoming) */
   .ev-row{display:flex;align-items:center;justify-content:space-between;
@@ -428,11 +429,11 @@ function renderAll(){
     return {...e, _i:i, _effDate:effDate, _d:d};
   }).filter(e=>e._d>=0).sort((a,b)=>a._d-b._d);
 
-  // ── Past: only non-repeat (or repeat=Never) events truly past ──
+  // ── Past: repeat 이벤트도 원래 날짜 기준으로 포함 ──
   const paRaw = events.map((e,i)=>{
     const d = diffDays(e.date);
     return {...e, _i:i, _d:d};
-  }).filter(e=>e._d<0 && (!e.repeat||e.repeat==='Never')).sort((a,b)=>b._d-a._d);
+  }).filter(e=>e._d<0).sort((a,b)=>b._d-a._d);
 
   // ── Render upcoming with section headers ──
   if(!upRaw.length){
