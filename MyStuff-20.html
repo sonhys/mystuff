@@ -321,33 +321,44 @@ function renderItems() {
 
 /* ══ 사진 압축 ══ */
 function compressImage(file, cb) {
-  var r=new FileReader();
-  r.onload=function(ev){
-    var img=new Image();
-    img.onload=function(){
-      var MAX=1024, w=img.width, h=img.height;
-      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
-      var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      cb(cv.toDataURL('image/jpeg',0.75));
+  var r = new FileReader();
+  r.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      var MAX = 800, w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      var dataUrl = cv.toDataURL('image/jpeg', 0.60);
+      cv.width = 0; cv.height = 0;
+      cb(dataUrl);
     };
-    img.src=ev.target.result;
+    img.src = ev.target.result;
   };
   r.readAsDataURL(file);
 }
 function handleFileInput(e) {
-  var files=Array.from(e.target.files), remaining=10-pendingPhotos.length;
-  var toLoad=files.slice(0,remaining);
-  if(!toLoad.length){ showToast('최대 10장까지 첨부 가능합니다'); return; }
-  var loaded=0;
-  toLoad.forEach(function(f){
-    compressImage(f,function(url){
-      pendingPhotos.push({dataUrl:url});
-      if(++loaded===toLoad.length) renderPhotoStrip();
+  var files = Array.from(e.target.files);
+  var remaining = 10 - pendingPhotos.length;
+  var toLoad = files.slice(0, remaining);
+  if (!toLoad.length) { showToast('최대 10장까지 첨부 가능합니다'); return; }
+  if (files.length > remaining) showToast('일부 사진이 생략되었습니다 (최대 10장)');
+  e.target.value = '';
+  var idx = 0;
+  function processNext() {
+    if (idx >= toLoad.length) { renderPhotoStrip(); return; }
+    var f = toLoad[idx++];
+    compressImage(f, function(url) {
+      pendingPhotos.push({ dataUrl: url });
+      renderPhotoStrip();
+      setTimeout(processNext, 150);
     });
-  });
-  e.target.value='';
-  if(files.length>remaining) showToast('일부 사진이 생략되었습니다');
+  }
+  processNext();
 }
 function renderPhotoStrip() {
   var strip=document.getElementById('photos-scroll'); if(!strip) return;
@@ -548,24 +559,26 @@ function changeQty(dir) {
 }
 
 function saveItem() {
-  var name=document.getElementById('f-name').value.trim();
-  if(!name){ alert('이름을 입력해주세요'); return; }
-  var item={
-    id:       editingItem?editingItem.id:Date.now().toString(),
+  var name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('이름을 입력해주세요'); return; }
+  var item = {
+    id:       editingItem ? editingItem.id : Date.now().toString(),
     cat:      document.getElementById('f-cat').value,
     name:     name,
     location: document.getElementById('f-location').value,
     qty:      document.getElementById('f-qty').value,
     date:     document.getElementById('f-date').value,
     memo:     document.getElementById('f-memo').value.trim(),
-    photos:   pendingPhotos.map(function(p){ return p.dataUrl; }),
-    created:  editingItem?editingItem.created:new Date().toLocaleDateString('ko-KR')
+    photos:   pendingPhotos.map(function(p) { return p.dataUrl; }),
+    created:  editingItem ? editingItem.created : new Date().toLocaleDateString('ko-KR')
   };
-  dbSet('items', item, function(){
-    dbGetAll('items', function(result){
-      allItems=result.sort(function(a,b){ return b.id-a.id; });
-      closeModal('add-modal'); renderItems();
-      showToast(editingItem?'수정되었습니다':'추가되었습니다 ✓');
+  dbSet('items', item, function() {
+    dbGetAll('items', function(result) {
+      allItems = result.sort(function(a, b) { return b.id - a.id; });
+      pendingPhotos = [];
+      closeModal('add-modal');
+      renderItems();
+      showToast(editingItem ? '수정되었습니다' : '추가되었습니다 ✓');
     });
   });
 }
