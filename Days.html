@@ -165,6 +165,22 @@
   .cal-wrap.open{display:block}
   .cal-nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .cal-month{font-size:15px;font-weight:600;color:var(--text)}
+  .cal-month:active{background:var(--bg3) !important}
+  .cal-month svg{width:13px;height:13px;fill:none;stroke:var(--text2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* Year picker */
+  .year-picker{display:none}
+  .year-picker.open{display:block}
+  .year-picker.open ~ .cal-grid, .cal-grid.hidden-by-year{display:none}
+  .year-picker-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .year-decade-label{font-size:15px;font-weight:600;color:var(--text)}
+  .year-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .year-cell{font-size:14px;padding:10px 2px;text-align:center;cursor:pointer;border-radius:var(--radius-sm);
+    color:var(--text);transition:background .1s}
+  .year-cell:active{background:var(--bg3)}
+  .year-cell.cur-year{color:var(--accent);font-weight:700}
+  .year-cell.sel-year{background:var(--accent);color:#fff !important;font-weight:600}
+  .year-cell.out-range{color:var(--text3)}
   .cal-btn{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:none;
     cursor:pointer;display:flex;align-items:center;justify-content:center}
   .cal-btn svg{width:14px;height:14px;fill:none;stroke:var(--text);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -308,12 +324,24 @@
             <button class="cal-btn" onclick="calNav(-1)" type="button">
               <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span class="cal-month" id="cal-month"></span>
+            <button class="cal-month" id="cal-month" type="button" onclick="toggleYearPicker()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px"></button>
             <button class="cal-btn" onclick="calNav(1)" type="button">
               <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
+          <div class="year-picker" id="year-picker">
+            <div class="year-picker-nav">
+              <button class="cal-btn" onclick="yearDecadeNav(-1)" type="button">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="year-decade-label" id="year-decade-label"></span>
+              <button class="cal-btn" onclick="yearDecadeNav(1)" type="button">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <div class="year-grid" id="year-grid"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -610,7 +638,9 @@ function calNav(dir){
 }
 
 function renderCal(){
-  document.getElementById('cal-month').textContent = `${MONTHS_EN[calM]} ${calY}`;
+  document.getElementById('cal-month').innerHTML = `${MONTHS_EN[calM]} ${calY} <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
+  document.getElementById('year-picker').classList.remove('open');
+  document.getElementById('cal-grid').classList.remove('hidden-by-year');
   const grid = document.getElementById('cal-grid');
   let html = DOW_SHORT.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   const first = new Date(calY, calM, 1).getDay();
@@ -624,6 +654,44 @@ function renderCal(){
     html += `<div class="cal-day${isToday?' today':''}${isSel?' sel':''}" onclick="pickDate('${iso}')">${d}</div>`;
   }
   grid.innerHTML = html;
+}
+
+// Year picker
+let decadeStart = null;
+function toggleYearPicker(){
+  const yp = document.getElementById('year-picker');
+  const isOpen = yp.classList.toggle('open');
+  document.getElementById('cal-grid').classList.toggle('hidden-by-year', isOpen);
+  if(isOpen){
+    decadeStart = calY - (calY % 12);
+    renderYearGrid();
+  }
+}
+
+function yearDecadeNav(dir){
+  decadeStart += dir*12;
+  renderYearGrid();
+}
+
+function renderYearGrid(){
+  document.getElementById('year-decade-label').textContent = `${decadeStart} - ${decadeStart+11}`;
+  const grid = document.getElementById('year-grid');
+  const curYear = today().getFullYear();
+  let html='';
+  for(let y=decadeStart; y<decadeStart+12; y++){
+    const cls = [];
+    if(y===curYear) cls.push('cur-year');
+    if(y===calY) cls.push('sel-year');
+    html += `<div class="year-cell ${cls.join(' ')}" onclick="pickYear(${y})">${y}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function pickYear(y){
+  calY = y;
+  document.getElementById('year-picker').classList.remove('open');
+  document.getElementById('cal-grid').classList.remove('hidden-by-year');
+  renderCal();
 }
 
 function pickDate(iso){
