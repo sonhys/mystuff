@@ -487,11 +487,30 @@ function rowHTML(e){
   </div>`;
 }
 
+function elapsedYMD(fromIso){
+  const from = new Date(fromIso+'T00:00:00');
+  const to = today();
+  let y = to.getFullYear() - from.getFullYear();
+  let m = to.getMonth() - from.getMonth();
+  let d = to.getDate() - from.getDate();
+  if(d<0){
+    m--;
+    const prevMonthLastDay = new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+    d += prevMonthLastDay;
+  }
+  if(m<0){ y--; m+=12; }
+  const parts=[];
+  if(y>0) parts.push(`${String(y).padStart(2,'0')}년`);
+  if(m>0 || y>0) parts.push(`${String(m).padStart(2,'0')}월`);
+  parts.push(`${String(d).padStart(2,'0')}일`);
+  return parts.join(' ');
+}
+
 function cardHTML(e){
   const d = e._d;
   const cls = 'card-past';
   const dLabel = `${d}`;
-  const subLabel = `${Math.abs(d)}일 지남`;
+  const subLabel = `${elapsedYMD(e.date)} 지남`;
   const repBadge = e.repeat && e.repeat!=='Never'
     ? `<div class="ev-repeat-badge">${e.repeat}</div>`:'';
   const notePart = e.note ? `<div class="ev-note">${escHtml(e.note)}</div>` : '';
