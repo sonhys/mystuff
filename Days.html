@@ -447,7 +447,7 @@ function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(
 // ── Section label ─────────────────────────────────────────────────────
 function sectionOf(d){
   if(d===0) return 'Today';
-  if(d<=7)  return 'This week';
+  if(d<=7)  return 'Within a week';
   const td=today();
   const endOfMonth=new Date(td.getFullYear(),td.getMonth()+1,0); endOfMonth.setHours(0,0,0,0);
   const daysToEOM=Math.round((endOfMonth-td)/86400000);
