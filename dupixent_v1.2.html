@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>듀피젠트 중증 천식 급여심사 + 판결문 작성기</title>
+<style>
+:root{
+  --bg:#f5f7fa;--card:#fff;--line:#d7dde5;--text:#1f2937;--muted:#667085;
+  --blue:#235f9c;--green:#19763b;--red:#b42318;--amber:#a15c00;
+}
+*{box-sizing:border-box}
+body{font-family:Arial,"Noto Sans KR","Malgun Gothic",sans-serif;background:var(--bg);color:var(--text);margin:0}
+.wrap{max-width:1080px;margin:22px auto;padding:0 14px 40px}
+h1{font-size:26px;margin:0 0 5px}
+.subtitle{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 1px 4px rgba(16,24,40,.04)}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:15px;margin:18px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+@media(max-width:780px){.grid,.grid3{grid-template-columns:1fr}}
+label{font-size:13px;font-weight:700;display:block;margin-bottom:5px}
+input,select,textarea{
+ width:100%;border:1px solid #b8c1cc;border-radius:8px;padding:9px 10px;background:#fff;
+ font-size:14px;font-family:inherit
+}
+textarea{min-height:110px;resize:vertical;line-height:1.55}
+.note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+button{border:0;border-radius:8px;padding:11px 17px;font-size:14px;font-weight:800;cursor:pointer;margin:4px 6px 4px 0}
+.primary{background:var(--blue);color:white}
+.secondary{background:#e9eef4;color:#253858}
+.green{background:#e8f5ec;color:#145b2b}
+.result{border-left:5px solid #7b8794;border-radius:9px;padding:15px 16px;background:#fafbfc}
+.result.ok{border-color:var(--green);background:#f2fbf5}
+.result.bad{border-color:var(--red);background:#fff4f3}
+.result.warn{border-color:#d98b00;background:#fff9ed}
+.big{font-size:20px;font-weight:900;margin-bottom:9px}
+ul{margin:6px 0 0 20px;padding:0}
+li{margin:7px 0;line-height:1.48}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:5px}
+.bok{background:#dff2e4;color:#15612e}.bbad{background:#fbd9d6;color:#a32118}.bwarn{background:#fff0c9;color:#875300}
+hr{border:0;border-top:1px solid #e4e7ec;margin:18px 0}
+.ruling{min-height:240px;background:#fbfcfe}
+.small{font-size:12px;color:#5e6673;line-height:1.55}
+.kpi{font-weight:800}
+.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef2f6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>듀피젠트® 중증 천식 급여심사 + 판결문 작성기</h1>
+  <div class="subtitle">
+    Dupilumab · 중증 제2형 염증성 천식 · 급여 판정 보조 및 심사의견/판결문 자동 생성<br>
+    기준일: 2026-08-01 현재 고시 확인용. 실제 심사는 청구시점 고시와 원진료기록을 우선합니다.
+  </div>
+
+  <div class="card">
+    <h2>1. 기본 정보</h2>
+    <div class="grid3">
+      <div><label>심사 단계</label>
+        <select id="stage">
+          <option value="primary">1차 심사</option>
+          <option value="review">재심사</option>
+          <option value="appeal">이의신청</option>
+          <option value="tribunal">심판청구</option>
+        </select>
+      </div>
+      <div><label>심사 유형</label>
+        <select id="mode">
+          <option value="init">최초 투여</option>
+          <option value="continue">지속 투여</option>
+        </select>
+      </div>
+      <div><label>연령 (세)</label><input id="age" type="number" min="0" step="1" placeholder="예: 58"></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>청구/투여일</label><input id="claimDate" type="date"></div>
+      <div><label>기타 주요 진료정보</label><input id="extra" type="text" placeholder="예: 중증 천식, 입원력, 응급실 방문 등"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. 기존 표준치료 및 조절 상태</h2>
+    <div class="grid">
+      <div><label>고용량 ICS-LABA 사용</label><select id="ics"><option value="yes" selected>예</option><option value="no">아니오</option></select></div>
+      <div><label>LAMA 사용</label><select id="lama"><option value="yes" selected>예</option><option value="no">아니오</option></select></div>
+      <div><label>위 치료에도 조절 불량</label><select id="uncontrolled"><option value="yes" selected>예</option><option value="no">아니오</option></select></div>
+      <div><label>다른 생물학적 제제와 동시 병용</label><select id="combo"><option value="no" selected>아니오</option><option value="yes">예</option></select></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>ICS-LABA / LAMA 투여기간 또는 근거</label><input id="controllerNote" type="text" placeholder="예: 고용량 ICS/LABA + tiotropium 지속 사용"></div>
+      <div><label>흡입기 순응도/사용법 확인</label><select id="adherence"><option value="">기록 없음/미확인</option><option value="yes">확인됨</option><option value="no">불충분</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. 최초 투여 급여기준</h2>
+    <div class="grid3">
+      <div><label>치료 전 12개월 이내 최고 EOS (cells/μL)</label><input id="eos" type="number" min="0" step="1" placeholder="예: 230"></div>
+      <div><label>치료 전 12개월 이내 최고 FeNO (ppb)</label><input id="feno" type="number" min="0" step="0.1" placeholder="예: 36"></div>
+      <div><label>최근 12개월 전신 steroid 필요 급성악화 횟수</label><input id="exacPre" type="number" min="0" step="1" placeholder="예: 4"></div>
+    </div>
+    <div class="grid3" style="margin-top:12px">
+      <div><label>최근 6개월 지속 OCS 사용</label><select id="ocs6"><option value="">선택</option><option value="yes">예</option><option value="no">아니오</option></select></div>
+      <div><label>기준 OCS 용량 (prednisolone equivalent mg/day)</label><input id="ocsDosePre" type="number" min="0" step="0.5" placeholder="예: 7.5"></div>
+      <div><label>듀피젠트 제형</label><select id="dose"><option value="">선택</option><option value="300">300 mg</option><option value="200">200 mg</option></select></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>급성악화 근거 요약</label><textarea id="exacEvidence" placeholder="예: 2025.02, 05, 09, 12월 각각 prednisolone burst 사용"></textarea></div>
+      <div><label>OCS 지속사용 근거 요약</label><textarea id="ocsEvidence" placeholder="예: 최근 6개월간 prednisolone 5 mg/day 이상 지속 처방"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4. 지속 투여 평가</h2>
+    <div class="grid3">
+      <div><label>평가 구분</label>
+        <select id="evalPeriod">
+          <option value="">선택</option>
+          <option value="12">일반 지속투여: 1년 평가</option>
+          <option value="6">OCS 의존성: 6개월 평가</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
+      <div><label>평가기간 급성악화 횟수</label><input id="exacPost" type="number" min="0" step="1" placeholder="예: 1"></div>
+      <div><label>평가 시 OCS 용량 (mg/day)</label><input id="ocsDosePost" type="number" min="0" step="0.5" placeholder="예: 2.5"></div>
+    </div>
+    <div class="grid3" style="margin-top:12px">
+      <div><label>천식 증상</label><select id="controlPost"><option value="">선택</option><option value="improved">개선</option><option value="maintained">유지</option><option value="worse">악화</option></select></div>
+      <div><label>전반적인 천식 조절</label><select id="overall"><option value="">선택</option><option value="yes">확인됨</option><option value="no">확인되지 않음</option></select></div>
+      <div><label>투여소견서/평가자료</label><select id="opinion"><option value="">선택</option><option value="yes">확인됨</option><option value="no">없음/확인 불가</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. 추가 검토사항</h2>
+    <div class="grid">
+      <div><label>직전 천식 생물학적 제제</label>
+        <select id="prevBio">
+          <option value="none">없음</option>
+          <option value="omalizumab">Omalizumab</option>
+          <option value="mepolizumab">Mepolizumab</option>
+          <option value="reslizumab">Reslizumab</option>
+          <option value="benralizumab">Benralizumab</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
+      <div><label>교체 사유/소견</label><input id="switchNote" type="text" placeholder="교체 시 입력"></div>
+    </div>
+    <div style="margin-top:12px">
+      <label>심사자가 추가로 반영할 사실</label>
+      <textarea id="reviewerFacts" placeholder="예: 청구인이 제시한 사유, 원심 조정 사유, 진료기록에서 확인되는 추가 사실"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>6. 자동 판정</h2>
+    <button class="primary" onclick="judge()">판정 + 판결문 작성</button>
+    <button class="secondary" onclick="resetAll()">초기화</button>
+    <button class="green" onclick="copyRuling()">판결문 복사</button>
+    <hr>
+    <div id="output" class="result warn"><div class="big">입력 후 판정을 실행하십시오.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>7. 판결문 / 심사의견</h2>
+    <div class="inline">
+      <span class="pill">자동 작성 후 직접 수정 가능</span>
+      <span class="pill">수치와 불충족 항목 자동 반영</span>
+    </div>
+    <textarea id="ruling" class="ruling" placeholder="판정 실행 시 자동 작성됩니다."></textarea>
+    <div class="note">문구는 심사 보조 초안입니다. 최종 판단 및 문안은 심사자가 진료기록과 청구시점 급여기준을 확인하여 확정하십시오.</div>
+  </div>
+
+  <div class="card small">
+    <b>판정 핵심 로직</b><br>
+    ① 만 12세 이상 + 고용량 ICS-LABA 및 LAMA에도 조절 불량을 기본 전제로 확인합니다.<br>
+    ② 최초투여 경로 A: EOS ≥150 cells/μL 또는 FeNO ≥25 ppb + 최근 12개월 전신 steroid 필요 급성악화 ≥4회.<br>
+    ③ 최초투여 경로 B: 최근 6개월간 prednisolone 5 mg/day 상당 이상 지속 OCS 사용. 이 경로의 제형 조건을 함께 확인합니다.<br>
+    ④ 지속투여는 급성악화 빈도 50% 이상 감소 또는 천식조절 유지/개선과 함께 OCS 50% 이상 감량 여부를 계산합니다.<br>
+    ⑤ 자료가 불충분한 경우 자동으로 '불인정'하지 않고 '자료보완/확인 필요'로 분리합니다.<br>
+    ⑥ 생물학적 제제 교체는 개별 급여기준 및 교체 사유 확인이 필요한 별도 검토 항목으로 표시합니다.
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const val=id=>$(id).value;
+const num=id=>{const n=parseFloat(val(id));return Number.isFinite(n)?n:null};
+const yes=id=>val(id)==='yes';
+const no=id=>val(id)==='no';
+const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
+const tag=(text,status)=>{
+ const c=status==='ok'?'bok':status==='bad'?'bbad':'bwarn';
+ const t=status==='ok'?'충족':status==='bad'?'불충족':'확인 필요';
+ return `${text} <span class="badge ${c}">${t}</span>`;
+};
+const stageName=()=>({primary:'1차 심사',review:'재심사',appeal:'이의신청',tribunal:'심판청구'})[val('stage')];
+
+function judge(){
+ let items=[], failReasons=[], missingReasons=[], passReasons=[];
+ let fail=false, missing=false;
+ const mode=val('mode');
+ const age=num('age');
+
+ // common prerequisites
+ if(age===null){items.push(tag('연령 기록 없음','warn'));missing=true;missingReasons.push('연령')}
+ else if(age>=12){items.push(tag(`연령 ${age}세 (만 12세 이상)`,'ok'));passReasons.push(`연령 ${age}세`)}
+ else {items.push(tag(`연령 ${age}세 (만 12세 미만)`,'bad'));fail=true;failReasons.push('만 12세 미만')}
+
+ [['ics','고용량 ICS-LABA'],['lama','LAMA'],['uncontrolled','해당 치료에도 조절 불량']].forEach(([id,name])=>{
+   if(yes(id)){items.push(tag(name,'ok'));passReasons.push(name)}
+   else if(no(id)){items.push(tag(name,'bad'));fail=true;failReasons.push(name+' 요건 불충족')}
+   else {items.push(tag(name+' 기록 미확인','warn'));missing=true;missingReasons.push(name)}
+ });
+
+ if(yes('combo')){items.push(tag('다른 천식 생물학적 제제와 동시 병용','bad'));fail=true;failReasons.push('다른 중증 천식 생물학적 제제와 동시 병용')}
+ else if(no('combo')) items.push(tag('다른 천식 생물학적 제제와 동시 병용 없음','ok'));
+ else {items.push(tag('생물학적 제제 병용 여부','warn'));missing=true;missingReasons.push('생물학적 제제 병용 여부')}
+
+ let pathA=false,pathB=false,exRed=null,ocsRed=null,responseOK=false;
+
+ if(mode==='init'){
+   const eos=num('eos'), feno=num('feno'), ex=num('exacPre'), ocs6=val('ocs6'), pre=num('ocsDosePre'), dose=val('dose');
+   const bioKnown=(eos!==null || feno!==null);
+   const biomarker=(eos!==null && eos>=150)||(feno!==null && feno>=25);
+   const exok=ex!==null && ex>=4;
+   pathA=biomarker && exok;
+   pathB=(ocs6==='yes' && pre!==null && pre>=5);
+
+   if(eos!==null) items.push(tag(`EOS ${fmt(eos)} cells/μL (기준 ≥150)`,eos>=150?'ok':'bad'));
+   else items.push(tag('EOS 자료 없음','warn'));
+   if(feno!==null) items.push(tag(`FeNO ${fmt(feno)} ppb (기준 ≥25)`,feno>=25?'ok':'bad'));
+   else items.push(tag('FeNO 자료 없음','warn'));
+
+   if(ex!==null) items.push(tag(`최근 12개월 전신 steroid 필요 급성악화 ${ex}회 (기준 ≥4회)`,exok?'ok':'bad'));
+   else items.push(tag('최근 12개월 급성악화 횟수','warn'));
+
+   if(ocs6==='yes'){
+     if(pre!==null) items.push(tag(`최근 6개월 지속 OCS ${fmt(pre)} mg/day prednisolone equivalent`,pre>=5?'ok':'bad'));
+     else {items.push(tag('지속 OCS 용량 미입력','warn'));missing=true;missingReasons.push('지속 OCS 용량')}
+   } else if(ocs6==='no') items.push(tag('최근 6개월 지속 OCS 사용 없음','warn'));
+   else {items.push(tag('최근 6개월 지속 OCS 여부','warn'));missing=true;missingReasons.push('최근 6개월 지속 OCS 여부')}
+
+   if(pathA) passReasons.push('제2형 염증 지표와 최근 12개월 급성악화 기준 충족');
+   if(pathB) {
+     passReasons.push('최근 6개월 OCS 의존성 기준 충족');
+     if(dose==='200'){items.push(tag('OCS 의존성 경로에서 200 mg 제형 선택','bad'));fail=true;failReasons.push('OCS 의존성 경로의 제형 요건 불충족')}
+     else if(dose==='300') items.push(tag('OCS 의존성 경로 300 mg 제형','ok'));
+     else {items.push(tag('OCS 의존성 경로 제형 미확인','warn'));missing=true;missingReasons.push('듀피젠트 제형')}
+   }
+
+   if(!pathA && !pathB){
+      const Adef = bioKnown && ex!==null;
+      const Bdef = ocs6==='no' || (ocs6==='yes' && pre!==null);
+      if(Adef && Bdef){
+        fail=true;
+        let reason=[];
+        if(!biomarker) reason.push('EOS <150 및 FeNO <25 또는 해당 지표 기준 미충족');
+        if(!exok) reason.push('최근 12개월 전신 steroid 필요 급성악화 4회 미만');
+        if(!(ocs6==='yes' && pre!==null && pre>=5)) reason.push('최근 6개월 prednisolone ≥5 mg/day 지속 OCS 요건 미충족');
+        failReasons.push(...reason);
+        items.push(tag('최초투여 경로 A 또는 B 중 어느 것도 충족하지 않음','bad'));
+      } else {
+        missing=true;
+        missingReasons.push('최초투여 핵심 기준 판정자료');
+        items.push(tag('최초투여 핵심 기준 판정을 위한 자료 부족','warn'));
+      }
+   }
+ } else {
+   const preEx=num('exacPre'), postEx=num('exacPost');
+   const preDose=num('ocsDosePre'), postDose=num('ocsDosePost');
+   let exResp=false, ocsResp=false;
+
+   if(preEx!==null && postEx!==null && preEx>0){
+      exRed=(preEx-postEx)/preEx*100;
+      exResp=exRed>=50;
+      items.push(tag(`급성악화 ${preEx} → ${postEx}회, ${exRed.toFixed(1)}% 감소`,exResp?'ok':'bad'));
+      if(exResp) passReasons.push(`급성악화 빈도 ${exRed.toFixed(1)}% 감소`);
+   } else {
+      items.push(tag('급성악화 전·후 횟수로 감소율 계산 필요','warn'));
+   }
+
+   if(preDose!==null && postDose!==null && preDose>0){
+      ocsRed=(preDose-postDose)/preDose*100;
+      const controlOK=['improved','maintained'].includes(val('controlPost'));
+      ocsResp=ocsRed>=50 && controlOK;
+      items.push(tag(`OCS ${fmt(preDose)} → ${fmt(postDose)} mg/day, ${ocsRed.toFixed(1)}% 감량`,ocsRed>=50?'ok':'bad'));
+      if(val('controlPost')) items.push(tag(`천식 증상 ${val('controlPost')==='improved'?'개선':val('controlPost')==='maintained'?'유지':'악화'}`,controlOK?'ok':'bad'));
+      if(ocsResp) passReasons.push(`천식조절 유지/개선과 함께 OCS ${ocsRed.toFixed(1)}% 감량`);
+   } else {
+      items.push(tag('OCS 감량 경로 평가 시 전·후 용량 필요','warn'));
+   }
+
+   responseOK=exResp||ocsResp;
+   if(responseOK) items.push(tag('지속투여 반응기준 중 1개 이상 충족','ok'));
+   else {
+     const assessable=(exRed!==null)||(ocsRed!==null);
+     if(assessable){items.push(tag('지속투여 반응기준 미충족','bad'));fail=true;failReasons.push('지속투여 반응기준 미충족')}
+     else {items.push(tag('지속투여 반응평가 자료 부족','warn'));missing=true;missingReasons.push('지속투여 반응평가 자료')}
+   }
+
+   if(yes('overall')) items.push(tag('전반적인 천식 조절 확인','ok'));
+   else if(no('overall')){items.push(tag('전반적인 천식 조절 확인되지 않음','bad'));fail=true;failReasons.push('전반적인 천식 조절 확인 불가')}
+   else {items.push(tag('전반적인 천식 조절 여부','warn'));missing=true;missingReasons.push('전반적인 천식 조절 여부')}
+
+   if(yes('opinion')) items.push(tag('투여소견서/평가자료 확인','ok'));
+   else if(no('opinion')){items.push(tag('투여소견서/평가자료 없음','warn'));missing=true;missingReasons.push('투여소견서 또는 평가자료')}
+   else {items.push(tag('투여소견서/평가자료','warn'));missing=true;missingReasons.push('투여소견서 또는 평가자료')}
+ }
+
+ // biologic switch: flag for manual review, not automatic deny
+ if(val('prevBio')!=='none'){
+   const names={omalizumab:'omalizumab',mepolizumab:'mepolizumab',reslizumab:'reslizumab',benralizumab:'benralizumab',other:'기타 생물학적 제제'};
+   items.push(tag(`직전 ${names[val('prevBio')]}에서 dupilumab으로 교체: 별도 교체 급여기준 검토 필요`,'warn'));
+   missing=true;
+   missingReasons.push('생물학적 제제 교체 인정요건 및 교체사유');
+ }
+
+ // final status: definite fail overrides missing
+ let status,title;
+ if(fail){status='bad';title='불인정 가능성 높음 / 기준 미충족'}
+ else if(missing){status='warn';title='판정 보류 / 자료확인 필요'}
+ else {status='ok';title='급여 인정 가능'}
+
+ $('output').className='result '+status;
+ $('output').innerHTML=`<div class="big">${title}</div><ul>${items.map(x=>'<li>'+x+'</li>').join('')}</ul>`;
+
+ $('ruling').value=buildRuling(status, failReasons, missingReasons, passReasons, exRed, ocsRed);
+}
+
+function buildRuling(status, failReasons, missingReasons, passReasons, exRed, ocsRed){
+ const mode=val('mode');
+ const eos=num('eos'), feno=num('feno'), exPre=num('exacPre'), exPost=num('exacPost');
+ const pre=num('ocsDosePre'), post=num('ocsDosePost');
+ const facts=val('reviewerFacts').trim();
+ let lines=[];
+
+ if(mode==='init'){
+   let d=[];
+   if(eos!==null) d.push(`EOS ${fmt(eos)} cells/μL`);
+   if(feno!==null) d.push(`FeNO ${fmt(feno)} ppb`);
+   if(exPre!==null) d.push(`최근 12개월 전신 corticosteroid가 요구된 급성악화 ${exPre}회`);
+   if(val('ocs6')==='yes' && pre!==null) d.push(`최근 6개월 OCS ${fmt(pre)} mg/day`);
+   if(d.length) lines.push(`진료기록상 ${d.join(', ')}로 확인된다.`);
+ } else {
+   let d=[];
+   if(exPre!==null && exPost!==null && exRed!==null) d.push(`급성악화가 ${exPre}회에서 ${exPost}회로 ${exRed.toFixed(1)}% 감소`);
+   if(pre!==null && post!==null && ocsRed!==null) d.push(`OCS가 ${fmt(pre)} mg/day에서 ${fmt(post)} mg/day로 ${ocsRed.toFixed(1)}% 감량`);
+   if(d.length) lines.push(`지속투여 평가에서 ${d.join(', ')}한 것으로 확인된다.`);
+ }
+
+ let treatment=[];
+ if(yes('ics')) treatment.push('고용량 ICS-LABA');
+ if(yes('lama')) treatment.push('LAMA');
+ if(yes('uncontrolled')) treatment.push('상기 치료에도 조절 불량');
+ if(treatment.length) lines.push(`기존 치료로는 ${treatment.join(', ')}이 확인된다.`);
+
+ if(facts) lines.push(`추가로 ${facts}`);
+
+ if(status==='ok'){
+   const reasons=[...new Set(passReasons)].filter(x=>!x.startsWith('연령')).slice(0,2);
+   lines.push(`관련 급여기준에 비추어 ${reasons.length?reasons.join(', ')+'으로 ':''}${mode==='init'?'최초 투여':'지속 투여'} 인정요건을 충족하는 것으로 판단된다.`);
+   lines.push('따라서 본 건 듀피젠트 투여를 요양급여로 인정함이 타당하다.');
+ } else if(status==='bad'){
+   const reasons=[...new Set(failReasons)].filter(x=>!x.includes('연령') && !x.includes('만 12세')).slice(0,3);
+   lines.push(`관련 급여기준에 비추어 ${reasons.length?reasons.join(', ')+'으로 ':''}${mode==='init'?'최초 투여':'지속 투여'} 인정요건을 충족하지 못한 것으로 판단된다.`);
+   if(val('stage')==='appeal' || val('stage')==='tribunal'){
+     lines.push('제출된 자료만으로는 원 처분을 달리 판단할 객관적 근거가 부족하므로 원 처분을 유지함이 타당하다.');
+   } else {
+     lines.push('따라서 본 건 듀피젠트 투여를 요양급여로 인정하기 어렵다.');
+   }
+ } else {
+   const reasons=[...new Set(missingReasons)].filter(x=>!x.includes('연령')).slice(0,3);
+   lines.push(`현재 제출된 자료만으로는 ${mode==='init'?'최초 투여':'지속 투여'}의 급여 인정 여부를 확정하기 어렵다${reasons.length?`(${reasons.join(', ')} 확인 필요)`:''}.`);
+   lines.push('관련 진료기록과 객관적 근거자료를 추가 확인한 후 급여 인정 여부를 판단함이 타당하다.');
+ }
+
+ // Keep final output within 3–5 narrative lines, with no age reference.
+ return lines.slice(0,5).join('\n');
+}
+async function copyRuling(){
+ const t=$('ruling');
+ if(!t.value){alert('먼저 판정 + 판결문 작성을 실행하십시오.');return}
+ try{
+   await navigator.clipboard.writeText(t.value);
+   alert('판결문이 클립보드에 복사되었습니다.');
+ }catch(e){
+   t.select(); document.execCommand('copy');
+   alert('판결문이 복사되었습니다.');
+ }
+}
+
+function resetAll(){
+ document.querySelectorAll('input').forEach(x=>x.value='');
+ document.querySelectorAll('textarea').forEach(x=>x.value='');
+ document.querySelectorAll('select').forEach(x=>x.selectedIndex=0);
+ $('ics').value='yes';
+ $('lama').value='yes';
+ $('uncontrolled').value='yes';
+ $('combo').value='no';
+ $('prevBio').value='none';
+ $('output').className='result warn';
+ $('output').innerHTML='<div class="big">입력 후 판정을 실행하십시오.</div>';
+}
+</script>
+</body>
+</html>
