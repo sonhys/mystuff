@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diabetes_v0.2</title>
+<style>
+:root{
+ --bg:#f5f7fa;--card:#fff;--line:#d7dde5;--text:#202733;--muted:#667085;
+ --blue:#235f9c;--green:#19763b;--red:#b42318;--amber:#a15c00;--soft:#eef3f8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR","Malgun Gothic",sans-serif}
+.wrap{max-width:1120px;margin:22px auto;padding:0 14px 40px}
+h1{font-size:26px;margin:0 0 5px}
+.subtitle{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 1px 4px rgba(16,24,40,.04)}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:15px;margin:18px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+@media(max-width:800px){.grid,.grid3{grid-template-columns:1fr}}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+input,select,textarea{width:100%;border:1px solid #b9c2cd;border-radius:8px;padding:9px 10px;font-size:14px;background:#fff;font-family:inherit}
+textarea{min-height:90px;resize:vertical;line-height:1.5}
+.note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+button{border:0;border-radius:8px;padding:11px 17px;font-size:14px;font-weight:800;cursor:pointer;margin:4px 6px 4px 0}
+.primary{background:var(--blue);color:#fff}.secondary{background:#e9eef4;color:#253858}.green{background:#e8f5ec;color:#145b2b}
+.hidden{display:none!important}
+.result{border-left:5px solid #7b8794;border-radius:9px;padding:15px 16px;background:#fafbfc}
+.result.ok{border-color:var(--green);background:#f2fbf5}.result.bad{border-color:var(--red);background:#fff4f3}.result.warn{border-color:#d98b00;background:#fff9ed}
+.big{font-size:20px;font-weight:900;margin-bottom:9px}
+ul{margin:6px 0 0 20px;padding:0} li{margin:7px 0;line-height:1.48}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:5px}
+.bok{background:#dff2e4;color:#15612e}.bbad{background:#fbd9d6;color:#a32118}.bwarn{background:#fff0c9;color:#875300}
+hr{border:0;border-top:1px solid #e4e7ec;margin:18px 0}
+.ruling{min-height:160px;background:#fbfcfe}
+.small{font-size:12px;color:#5e6673;line-height:1.58}
+.checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px}
+@media(max-width:800px){.checks{grid-template-columns:1fr 1fr}}
+.chk{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #d9dfe7;border-radius:8px;background:#fafbfc;font-size:13px}
+.chk input{width:auto;margin:0}
+.pill{display:inline-block;padding:4px 8px;background:#eef2f6;border-radius:999px;font-size:12px;margin:2px 4px 2px 0}
+.warnbox{background:#fff8e6;border:1px solid #f2cc7c;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>당뇨병 약제 급여심사 + 판결문 작성기</h1>
+<div class="subtitle">
+제2형 당뇨병 · 경구제 2제/3제 · Insulin · GLP-1 RA · 고정복합제<br>
+기준: 보건복지부 고시 제2026-117호(2026-06-01 시행) 중심 · 복합제는 실제 유효성분 수로 계산 · 규칙 기반 로컬 HTML
+</div>
+
+<div class="card">
+<h2>1. 심사 유형</h2>
+<div class="grid3">
+<div><label>요법 유형</label>
+<select id="therapy" onchange="toggleSections()">
+<option value="oral2">경구 2제</option>
+<option value="oral3">경구 3제</option>
+<option value="oral4">경구 4성분 이상 — 조정 대상 확인</option>
+<option value="insulinOral">Insulin + 경구제</option>
+<option value="glpOral">GLP-1 RA + 경구제</option>
+<option value="glpInsulin">GLP-1 RA + Insulin</option>
+<option value="fixedCombo">Insulin/GLP-1 고정복합제</option>
+</select></div>
+<div><label>심사 단계</label>
+<select id="stage">
+<option value="primary">1차 심사</option>
+<option value="review">재심사</option>
+<option value="appeal">이의신청</option>
+<option value="tribunal">심판청구</option>
+</select></div>
+<div><label>현재 HbA1c (%)</label><input type="number" id="hba1c" step="0.1" placeholder="예: 8.1"></div>
+</div>
+<div class="grid3" style="margin-top:12px">
+<div><label>공복혈당 (mg/dL)</label><input type="number" id="fpg" step="1"></div>
+<div><label>식후혈당 (mg/dL)</label><input type="number" id="ppg" step="1"></div>
+<div><label>기존 요법 사용기간</label>
+<select id="duration">
+<option value="">선택</option>
+<option value="lt2">2개월 미만</option>
+<option value="2to4">2–4개월</option>
+<option value="gt4">4개월 초과</option>
+<option value="rapid">신속한 변경 필요 + 투여소견 있음</option>
+</select></div>
+</div>
+</div>
+
+<div class="card" id="oralDrugsCard">
+<h2>2. 경구 당뇨병 약제 선택</h2>
+<div class="warnbox" style="margin-bottom:12px">
+복합제를 처방한 경우에는 <b>제품 수가 아니라 실제 포함된 유효성분을 각각 체크</b>하십시오.
+예: DPP-4i+Metformin 복합제 + SGLT-2i + SU = 총 4성분으로 계산됩니다.
+</div>
+<div id="ingredientCountBox" class="warnbox" style="margin-bottom:12px">
+현재 선택된 실제 유효성분 수: <b>0성분</b>
+</div>
+<div class="checks">
+<label class="chk"><input type="checkbox" id="met">Metformin</label>
+<label class="chk"><input type="checkbox" id="su">Sulfonylurea (SU)</label>
+<label class="chk"><input type="checkbox" id="meg">Meglitinide</label>
+<label class="chk"><input type="checkbox" id="agi">α-glucosidase inhibitor (α-GI)</label>
+<label class="chk"><input type="checkbox" id="tzd">Thiazolidinedione (TZD)</label>
+<label class="chk"><input type="checkbox" id="dpp4">DPP-4 inhibitor</label>
+<label class="chk"><input type="checkbox" id="sglt2" onchange="toggleSections()">SGLT-2 inhibitor</label>
+</div>
+
+<div id="sgltSection" class="grid" style="margin-top:12px">
+<div><label>SGLT-2 inhibitor 성분</label>
+<select id="sgltDrug">
+<option value="dapagliflozin">Dapagliflozin</option>
+<option value="empagliflozin">Empagliflozin</option>
+<option value="ipragliflozin">Ipragliflozin</option>
+<option value="enavogliflozin">Enavogliflozin</option>
+<option value="ertugliflozin">Ertugliflozin — 국내 처방 제외</option>
+</select></div>
+<div><label>Metformin 금기/부작용</label>
+<select id="metContra">
+<option value="no">아니오</option>
+<option value="yes">예</option>
+</select></div>
+</div>
+</div>
+
+<div class="card hidden" id="glpSection">
+<h2>3. GLP-1 RA 관련</h2>
+<div class="grid3">
+<div><label>GLP-1 RA 성분</label>
+<select id="glpDrug">
+<option value="dulaglutide">Dulaglutide</option>
+<option value="liraglutide">Liraglutide</option>
+<option value="lixisenatide">Lixisenatide</option>
+</select></div>
+<div><label>BMI (kg/m²)</label><input type="number" id="bmi" step="0.1"></div>
+<div><label>Insulin 요법 불가</label>
+<select id="insulinUnable">
+<option value="no">아니오</option>
+<option value="yes">예</option>
+</select></div>
+</div>
+<div class="grid3" style="margin-top:12px">
+<div><label>이전 Metformin + SU 사용</label><select id="priorMetSu"><option value="yes">예</option><option value="no">아니오</option></select></div>
+<div><label>이전 3제에서 현저한 혈당개선</label><select id="markedImprovement"><option value="no">아니오</option><option value="yes">예</option></select></div>
+<div><label>현재 Metformin 포함</label><select id="glpHasMet"><option value="yes">예</option><option value="no">아니오</option></select></div>
+</div>
+</div>
+
+<div class="card hidden" id="insulinSection">
+<h2>4. Insulin 관련</h2>
+<div class="grid3">
+<div><label>Insulin 종류</label>
+<select id="insulinType">
+<option value="basal">Long-acting / basal insulin</option>
+<option value="prandial">Prandial insulin</option>
+<option value="premix">Premixed insulin</option>
+<option value="other">기타</option>
+</select></div>
+<div><label>기저 Insulin 치료에도 HbA1c ≥7%</label>
+<select id="basalFailure"><option value="yes">예</option><option value="no">아니오</option></select></div>
+<div><label>Insulin과 병용하는 경구제 수</label><input type="number" id="oralCountWithInsulin" min="0" max="4" step="1" value="0"></div>
+</div>
+</div>
+
+<div class="card hidden" id="fixedSection">
+<h2>5. Insulin/GLP-1 고정복합제</h2>
+<div class="grid">
+<div><label>고정복합제</label>
+<select id="fixedDrug">
+<option value="xultophy">Insulin degludec + Liraglutide (Xultophy)</option>
+<option value="soliqua">Insulin glargine + Lixisenatide</option>
+</select></div>
+<div><label>Metformin 병용</label>
+<select id="fixedMet">
+<option value="yes">예</option>
+<option value="no">아니오</option>
+</select></div>
+</div>
+</div>
+
+<div class="card">
+<h2>6. 용량 및 추가 확인</h2>
+<div class="grid3">
+<div><label>Repaglinide 총 1일 용량 (mg)</label><input type="number" id="repagDose" step="0.5"></div>
+<div><label>Pioglitazone 총 1일 용량 (mg)</label><input type="number" id="pioDose" step="5"></div>
+<div><label>Glimepiride 총 1일 용량 (mg)</label><input type="number" id="glimDose" step="1"></div>
+</div>
+<div class="grid3" style="margin-top:12px">
+<div><label>Metformin 일반형 총 1일 용량 (mg)</label><input type="number" id="metIR" step="250"></div>
+<div><label>Metformin 서방형 총 1일 용량 (mg)</label><input type="number" id="metXR" step="250"></div>
+<div><label>기타 심사자가 반영할 사실</label><input type="text" id="extraFacts" placeholder="예: 약제 변경 사유, 부작용, 복합제 구성 등"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>7. 자동 판정</h2>
+<button class="primary" onclick="judge()">급여 판정 + 판결문 작성</button>
+<button class="secondary" onclick="resetAll()">초기화</button>
+<button class="green" onclick="copyRuling()">판결문 복사</button>
+<hr>
+<div id="output" class="result warn"><div class="big">입력 후 판정을 실행하십시오.</div></div>
+</div>
+
+<div class="card">
+<h2>8. 판결문 / 심사의견</h2>
+<div><span class="pill">3–5줄 서술형</span><span class="pill">구체적 불인정 사유 표시</span><span class="pill">직접 수정 가능</span></div>
+<textarea id="ruling" class="ruling" placeholder="판정 실행 시 자동 작성됩니다."></textarea>
+</div>
+
+<div class="card small">
+<b>주요 구현 규칙</b><br>
+• <b>복합제는 제품 수가 아니라 포함된 실제 유효성분 수로 계산</b>하며, 요양급여 인정 조합은 전체 최대 3성분까지만 허용하도록 판정합니다. 4성분 이상이면 조정 대상으로 표시합니다.<br>
+• 경구 2제는 인정 가능 2제 조합표를 기준으로 판정합니다. α-GI를 독립 계열로 포함했습니다.<br>
+• Insulin은 1성분으로 계산하며 경구제 2성분까지만 병용하여 전체 3성분을 초과하지 않도록 판정합니다.<br>
+• Enavogliflozin + SU 2제는 불인정하며, Enavogliflozin은 Insulin과 병용 시 인정하지 않습니다.<br>
+• Ertugliflozin은 국내 처방 선택지에서 사실상 제외하는 경고를 냅니다.<br>
+• 경구 3제는 기본적으로 모든 포함 2제 조합이 인정되어야 하며, 예외적으로 Metformin + SGLT-2i + DPP-4i, Metformin + SGLT-2i(ertugliflozin/enavogliflozin 제외) + TZD를 인정합니다.<br>
+• GLP-1 RA + Insulin은 basal insulin만 인정하도록 판정합니다. Insulin degludec + liraglutide(Xultophy)는 반드시 Metformin 병용을 요구하고, insulin glargine + lixisenatide는 단독 또는 Metformin 병용을 인정합니다.<br>
+• 이 파일은 외부 API를 호출하지 않는 로컬 규칙 기반 앱입니다.
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const val=id=>$(id).value;
+const num=id=>{const n=parseFloat(val(id));return Number.isFinite(n)?n:null};
+const checked=id=>$(id).checked;
+const tag=(t,s)=>{
+ const c=s==='ok'?'bok':s==='bad'?'bbad':'bwarn';
+ const x=s==='ok'?'충족':s==='bad'?'불충족':'확인 필요';
+ return `${t} <span class="badge ${c}">${x}</span>`;
+};
+
+function toggleSections(){
+ const th=val('therapy');
+ const glp=['glpOral','glpInsulin'].includes(th);
+ const insulin=['insulinOral','glpInsulin'].includes(th);
+ $('glpSection').classList.toggle('hidden',!glp);
+ $('insulinSection').classList.toggle('hidden',!insulin);
+ $('fixedSection').classList.toggle('hidden',th!=='fixedCombo');
+ $('oralDrugsCard').classList.toggle('hidden',th==='fixedCombo');
+ $('sgltSection').classList.toggle('hidden',!checked('sglt'));
+}
+document.addEventListener('change',e=>{if(['therapy','sglt2','fixedMet'].includes(e.target.id))toggleSections();updateIngredientCount()});
+document.addEventListener('input',updateIngredientCount);
+
+function selectedOrals(){
+ let a=[];
+ if(checked('met'))a.push('met');
+ if(checked('su'))a.push('su');
+ if(checked('meg'))a.push('meg');
+ if(checked('agi'))a.push('agi');
+ if(checked('tzd'))a.push('tzd');
+ if(checked('dpp4'))a.push('dpp4');
+ if(checked('sglt2'))a.push('sglt2');
+ return a;
+}
+function actualIngredientCount(){
+ const th=val('therapy');
+ const oral=selectedOrals().length;
+ if(th==='oral2'||th==='oral3'||th==='oral4') return oral;
+ if(th==='insulinOral') return oral + 1; // insulin = 1 ingredient
+ if(th==='glpOral') return oral + 1;     // GLP-1 RA = 1 ingredient
+ if(th==='glpInsulin') return oral + 2;  // GLP-1 RA + insulin
+ if(th==='fixedCombo') return 2 + (val('fixedMet')==='yes'?1:0); // fixed combo itself contains 2 ingredients
+ return oral;
+}
+function updateIngredientCount(){
+ const box=$('ingredientCountBox');
+ if(!box) return;
+ const n=actualIngredientCount();
+ const over=n>3;
+ box.innerHTML=`현재 선택된 실제 유효성분 수: <b>${n}성분</b>`+
+   (over?` · <b style="color:#b42318">급여 인정 최대 3성분 초과 — 조정 대상</b>`:` · 급여 최대 3성분 이내`);
+}
+function nameDrug(x){
+ return {met:'Metformin',su:'SU',meg:'Meglitinide',agi:'α-GI',tzd:'TZD',dpp4:'DPP-4 inhibitor',sglt2:`SGLT-2 inhibitor(${val('sgltDrug')})`}[x]||x;
+}
+function pairAllowed(a,b){
+ let s=new Set([a,b]);
+ if(a===b)return false;
+
+ // metformin can pair with all listed oral classes
+ if(s.has('met'))return true;
+
+ // SU pairings
+ if(s.has('su')&&s.has('agi'))return true;
+ if(s.has('su')&&s.has('tzd'))return true;
+ if(s.has('su')&&s.has('dpp4'))return true;
+ if(s.has('su')&&s.has('sglt2'))return val('sgltDrug')!=='enavogliflozin' && val('sgltDrug')!=='ertugliflozin';
+
+ // meglitinide pairings
+ if(s.has('meg')&&s.has('agi'))return true;
+ if(s.has('meg')&&s.has('tzd'))return true;
+
+ // TZD + DPP4
+ if(s.has('tzd')&&s.has('dpp4'))return true;
+
+ return false;
+}
+
+function judge(){
+ const th=val('therapy'), drugs=selectedOrals(), hba=num('hba1c'), fpg=num('fpg'), ppg=num('ppg');
+ let items=[],fail=[],missing=[],pass=[],hardFail=false;
+
+ const glyHigh=(hba!==null&&hba>=7)||(fpg!==null&&fpg>=130)||(ppg!==null&&ppg>=180);
+ const durationOK=['2to4','gt4','rapid'].includes(val('duration'));
+
+ // Global ingredient-count rule: combination products count by active ingredients.
+ const totalIngredients=actualIngredientCount();
+ items.push(tag(`실제 총 유효성분 수 ${totalIngredients}성분 (급여 인정 최대 3성분)`,totalIngredients<=3?'ok':'bad'));
+ if(totalIngredients>3){
+   hardFail=true;
+   fail.unshift(`복합제 포함 실제 총 유효성분이 ${totalIngredients}성분으로 급여 인정 가능한 최대 3성분을 초과함`);
+ }
+
+ // dosage
+ const rep=num('repagDose'),pio=num('pioDose'),glim=num('glimDose'),mir=num('metIR'),mxr=num('metXR');
+ if(rep!==null&&rep>6){hardFail=true;fail.push(`Repaglinide 1일 ${rep}mg로 급여 인정 최대용량 6mg 초과`);items.push(tag('Repaglinide 최대 6mg/day','bad'))}
+ if(pio!==null&&pio>30){hardFail=true;fail.push(`Pioglitazone 1일 ${pio}mg로 급여 인정 최대용량 30mg 초과`);items.push(tag('Pioglitazone 최대 30mg/day','bad'))}
+ if(glim!==null&&glim>8){hardFail=true;fail.push(`Glimepiride 1일 ${glim}mg로 급여 인정 최대용량 8mg 초과`);items.push(tag('Glimepiride 최대 8mg/day','bad'))}
+ if(mir!==null&&mir>2550){hardFail=true;fail.push(`Metformin 일반형 1일 ${mir}mg로 최대 2,550mg 초과`)}
+ if(mxr!==null&&mxr>2000){hardFail=true;fail.push(`Metformin 서방형 1일 ${mxr}mg로 최대 2,000mg 초과`)}
+ if(mir!==null&&mxr!==null&&mir+mxr>2550){hardFail=true;fail.push(`Metformin 일반형+서방형 총 ${mir+mxr}mg/day로 최대 2,550mg 초과`)}
+
+ if(checked('sglt2')&&val('sgltDrug')==='ertugliflozin'){
+   hardFail=true;fail.push('Ertugliflozin은 현재 국내 처방 대상에서 제외하여 검토 필요');
+   items.push(tag('Ertugliflozin 국내 처방 제외','bad'));
+ }
+
+ if(th==='oral2'){
+   if(drugs.length!==2){missing.push('경구제 2종 선택');items.push(tag(`현재 선택 ${drugs.length}종`,'warn'))}
+   else{
+     const ok=pairAllowed(drugs[0],drugs[1]);
+     if(ok){pass.push(`${drugs.map(nameDrug).join(' + ')} 2제 조합 인정`);items.push(tag(`${drugs.map(nameDrug).join(' + ')} 2제 조합`,'ok'))}
+     else{hardFail=true;fail.push(`${drugs.map(nameDrug).join(' + ')}는 인정 가능한 2제 조합이 아님`);items.push(tag(`${drugs.map(nameDrug).join(' + ')} 2제 조합`,'bad'))}
+   }
+   if(!durationOK&&!((hba!==null&&hba>=7.5&&checked('met'))||(val('metContra')==='yes'&&checked('su')))){
+      if(val('duration')==='lt2'){hardFail=true;fail.push('기존 단독요법 2개월 미만으로 2제 추가요법 기간기준 미충족')}
+      else if(!val('duration'))missing.push('기존 단독요법 2–4개월 이상 여부');
+   }
+   if(durationOK&&!glyHigh&&val('duration')!=='rapid'){
+      hardFail=true;fail.push('2제 추가요법 기준인 HbA1c ≥7.0%, FPG ≥130mg/dL, PPG ≥180mg/dL 중 어느 것도 확인되지 않음');
+   }
+ }
+
+ if(th==='oral4'){
+   if(drugs.length<4){
+      missing.push('경구 4성분 이상을 모두 성분별로 선택');
+      items.push(tag(`현재 선택 ${drugs.length}성분`,'warn'));
+   }else{
+      hardFail=true;
+      fail.unshift(`경구 당뇨병치료제가 실제 ${drugs.length}성분으로 처방되어 급여 인정 가능한 최대 3성분을 초과함`);
+      items.push(tag(`경구 ${drugs.length}성분 병용`,'bad'));
+   }
+ }
+
+ if(th==='oral3'){
+   if(drugs.length!==3){missing.push('경구제 3종 선택');items.push(tag(`현재 선택 ${drugs.length}종`,'warn'))}
+   else{
+     let special1=drugs.includes('met')&&drugs.includes('sglt2')&&drugs.includes('dpp4');
+     let special2=drugs.includes('met')&&drugs.includes('sglt2')&&drugs.includes('tzd')&&!['enavogliflozin','ertugliflozin'].includes(val('sgltDrug'));
+     let allPairs=true;
+     for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)if(!pairAllowed(drugs[i],drugs[j]))allPairs=false;
+     if(allPairs||special1||special2){
+       pass.push(`${drugs.map(nameDrug).join(' + ')} 3제 조합 인정`);
+       items.push(tag(`${drugs.map(nameDrug).join(' + ')} 3제 조합`,'ok'));
+     }else{
+       hardFail=true;fail.push(`${drugs.map(nameDrug).join(' + ')}는 인정 가능한 3제 조합이 아님`);
+       items.push(tag(`${drugs.map(nameDrug).join(' + ')} 3제 조합`,'bad'));
+     }
+   }
+   if(!durationOK){if(val('duration')==='lt2'){hardFail=true;fail.push('기존 2제요법 2개월 미만으로 3제 추가요법 기간기준 미충족')}else if(!val('duration'))missing.push('기존 2제요법 2–4개월 이상 여부')}
+   if(hba===null)missing.push('3제 추가 전 HbA1c');
+   else if(hba<7&&val('duration')!=='rapid'){hardFail=true;fail.push(`HbA1c ${hba}%로 3제 추가 기준 HbA1c ≥7.0% 미충족`)}
+ }
+
+ if(th==='insulinOral'){
+   if(drugs.length>2){hardFail=true;fail.unshift(`Insulin 1성분과 경구제 ${drugs.length}성분으로 총 ${drugs.length+1}성분이 되어 급여 인정 가능한 최대 3성분을 초과함`)}
+   else pass.push(`Insulin + 경구제 ${drugs.length}종 병용`);
+   if(checked('sglt2')&&val('sgltDrug')==='enavogliflozin'){
+      hardFail=true;fail.push('Enavogliflozin은 Insulin 주사제와 병용 급여가 인정되지 않음');
+   }
+   if(drugs.length===2&&!pairAllowed(drugs[0],drugs[1])){
+      hardFail=true;fail.push(`Insulin 병용 경구제 조합 ${drugs.map(nameDrug).join(' + ')}가 경구 2제 인정 조합이 아님`);
+   }
+   if(hba===null)missing.push('Insulin 병용요법 전 HbA1c');
+   else if(hba<7){hardFail=true;fail.push(`HbA1c ${hba}%로 Insulin 병용요법 인정기준 HbA1c ≥7.0% 미충족`)}
+ }
+
+ if(th==='glpOral'){
+   const glp=val('glpDrug'), bmi=num('bmi');
+   if(val('priorMetSu')!=='yes'){hardFail=true;fail.push('Metformin + SU 병용으로 충분한 혈당조절이 되지 않았다는 선행요법 요건 미충족')}
+   if(!((bmi!==null&&bmi>=25)||val('insulinUnable')==='yes')){
+      hardFail=true;fail.push('GLP-1 RA 경구제 병용 대상인 BMI ≥25 또는 Insulin 요법 불가 요건 미충족');
+   }
+   // accepted regimens: met+su+glp, or met+glp after marked improvement
+   const hasMet=checked('met'),hasSu=checked('su');
+   if(hasMet&&hasSu){
+      pass.push(`Metformin + SU + ${glp} 3종 병용`);
+   }else if(hasMet&&!hasSu&&val('markedImprovement')==='yes'){
+      pass.push(`현저한 혈당개선 후 Metformin + ${glp} 2종 병용`);
+   }else{
+      hardFail=true;fail.push(`GLP-1 RA 경구 병용 조합이 Metformin+SU+GLP-1 RA 또는 현저한 개선 후 Metformin+GLP-1 RA 요건을 충족하지 않음`);
+   }
+ }
+
+ if(th==='glpInsulin'){
+   const glp=val('glpDrug');
+   if(actualIngredientCount()>3){
+      hardFail=true;
+      fail.unshift(`GLP-1 RA와 Insulin 및 경구제를 합한 실제 총 유효성분이 ${actualIngredientCount()}성분으로 최대 3성분을 초과함`);
+   }
+   if(val('insulinType')!=='basal'){
+      hardFail=true;fail.push('GLP-1 RA와 병용 가능한 Insulin은 기저(long-acting) Insulin으로 제한됨');
+      items.push(tag('기저(long-acting) Insulin 병용','bad'));
+   }else{
+      pass.push('기저(long-acting) Insulin 병용');
+      items.push(tag('기저(long-acting) Insulin 병용','ok'));
+   }
+   if(hba===null)missing.push('GLP-1 RA + Insulin 병용 전 HbA1c');
+   else if(hba<7){hardFail=true;fail.push(`HbA1c ${hba}%로 GLP-1 RA + Insulin 병용 기준 HbA1c ≥7.0% 미충족`)}
+
+   // user-specified stricter ingredient exceptions
+   if(['liraglutide','dulaglutide'].includes(glp)&&val('glpHasMet')!=='yes'){
+      hardFail=true;fail.push(`${glp}의 Insulin 병용 시 Metformin이 포함되어 있지 않음`);
+   }
+   if(glp==='lixisenatide'){
+      pass.push('Lixisenatide는 기저 Insulin과 Metformin 없이도 2성분 병용 가능');
+   }
+ }
+
+ if(th==='fixedCombo'){
+   const fd=val('fixedDrug');
+   if(hba===null)missing.push('고정복합제 전환 전 HbA1c');
+   else if(hba<7){hardFail=true;fail.push(`HbA1c ${hba}%로 Insulin/GLP-1 고정복합제 병용 기준 HbA1c ≥7.0% 미충족`)}
+   if(fd==='xultophy'){
+      if(val('fixedMet')!=='yes'){hardFail=true;fail.push('Xultophy(Insulin degludec + liraglutide)는 Metformin 병용이 필수이나 Metformin이 포함되지 않음')}
+      else pass.push('Xultophy + Metformin 조합 인정 가능');
+   }else if(fd==='soliqua'){
+      pass.push(val('fixedMet')==='yes'?'Insulin glargine + lixisenatide + Metformin 조합 인정 가능':'Insulin glargine + lixisenatide 단독 2성분 조합 인정 가능');
+   }
+ }
+
+ // result
+ let status=hardFail?'bad':(missing.length?'warn':'ok');
+ let title=status==='ok'?'급여 인정 가능':status==='bad'?'불인정 가능성 높음 / 기준 미충족':'판정 보류 / 자료확인 필요';
+
+ if(pass.length)pass.forEach(x=>items.push(tag(x,'ok')));
+ if(fail.length)fail.forEach(x=>items.push(tag(x,'bad')));
+ if(missing.length)missing.forEach(x=>items.push(tag(x,'warn')));
+
+ $('output').className='result '+status;
+ $('output').innerHTML=`<div class="big">${title}</div><ul>${items.map(x=>'<li>'+x+'</li>').join('')}</ul>`;
+ $('ruling').value=buildRuling(status,pass,fail,missing);
+}
+
+function buildRuling(status,pass,fail,missing){
+ const th=val('therapy'), drugs=selectedOrals(), hba=num('hba1c'), extra=val('extraFacts').trim();
+ const therapyName={
+  oral2:'경구 2제요법',oral3:'경구 3제요법',oral4:'경구 4성분 이상 병용요법',insulinOral:'Insulin+경구제 병용요법',
+  glpOral:'GLP-1 RA+경구제 병용요법',glpInsulin:'GLP-1 RA+Insulin 병용요법',
+  fixedCombo:'Insulin/GLP-1 고정복합제'
+ }[th];
+ let lines=[];
+ const totalIngredients=actualIngredientCount();
+ if(hba!==null)lines.push(`진료기록상 HbA1c는 ${hba}%로 확인됩니다.`);
+ if(totalIngredients>3)lines.push(`복합제를 포함한 실제 당뇨병치료제는 총 ${totalIngredients}성분으로 확인됩니다.`);
+ if(drugs.length&&th!=='fixedCombo')lines.push(`현재 약제 조합은 ${drugs.map(nameDrug).join(' + ')}${['glpOral','glpInsulin'].includes(th)?' 및 '+val('glpDrug'):''}${['insulinOral','glpInsulin'].includes(th)?' + Insulin':''}입니다.`);
+ if(th==='fixedCombo')lines.push(`현재 심사 약제는 ${val('fixedDrug')==='xultophy'?'Insulin degludec + liraglutide(Xultophy)':'Insulin glargine + lixisenatide'}입니다.`);
+ if(extra)lines.push(extra);
+
+ if(status==='ok'){
+   const p=[...new Set(pass)].slice(0,2).join(', ');
+   lines.push(`${p||therapyName+' 인정요건'}이 확인되어 급여 인정요건을 충족하는 것으로 판단됩니다.`);
+   lines.push(`따라서 본 건 ${therapyName}을 요양급여로 인정함이 타당합니다.`);
+ }else if(status==='bad'){
+   const r=[...new Set(fail)].slice(0,3).join(', ');
+   lines.push(`${r||'급여 인정요건 미충족'}으로 ${therapyName}의 급여 인정요건을 충족하지 못한 것으로 판단됩니다.`);
+   if(['appeal','tribunal'].includes(val('stage'))) lines.push('제출된 자료만으로는 원 처분을 달리 판단할 객관적 근거가 부족하므로 원 처분을 유지함이 타당합니다.');
+   else lines.push(`따라서 본 건 ${therapyName}을 요양급여로 인정하기 어렵습니다.`);
+ }else{
+   const r=[...new Set(missing)].slice(0,3).join(', ');
+   lines.push(`현재 제출된 자료만으로는 ${therapyName}의 급여 인정 여부를 확정하기 어려우며 ${r||'관련 자료'}의 추가 확인이 필요합니다.`);
+   lines.push('관련 진료기록과 객관적 근거자료를 확인한 후 급여 인정 여부를 판단함이 타당합니다.');
+ }
+ return lines.slice(0,5).join('\n');
+}
+
+async function copyRuling(){
+ if(!$('ruling').value){alert('먼저 급여 판정을 실행하십시오.');return}
+ try{await navigator.clipboard.writeText($('ruling').value);alert('판결문이 복사되었습니다.')}
+ catch(e){$('ruling').select();document.execCommand('copy');alert('판결문이 복사되었습니다.')}
+}
+
+function resetAll(){
+ document.querySelectorAll('input[type="number"],input[type="text"]').forEach(x=>x.value='');
+ document.querySelectorAll('input[type="checkbox"]').forEach(x=>x.checked=false);
+ document.querySelectorAll('select').forEach(x=>x.selectedIndex=0);
+ $('output').className='result warn';
+ $('output').innerHTML='<div class="big">입력 후 판정을 실행하십시오.</div>';
+ $('ruling').value='';
+ toggleSections();
+ updateIngredientCount();
+}
+toggleSections();
+updateIngredientCount();
+</script>
+</body>
+</html>
