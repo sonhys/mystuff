@@ -4,10 +4,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DaysToGo">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#1a1a1a">
 <title>DaysToGo</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgOS4xLWMwMDEgNzkuYTg3MzA3MywgMjAyMy8wNi8xOS0xMTozMzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6Qzk0OTlCNEYxOEUxMTFFRkIzODlFNUI1RkExRjg3RDkiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6Qzk0OTlCNEUxOEUxMTFFRkIzODlFNUI1RkExRjg3RDkiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDI1LjAgKE1hY2ludG9zaCkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0iIiBzdFJlZjpkb2N1bWVudElEPSIiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4B">
+<script>
+(function(){
+  const icon512 = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTUiIGZpbGw9IiMxYTFhMWEiLz48dGV4dCB4PSIyNTYiIHk9IjM1NSIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOTAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pjwvc3ZnPg==';
+  const icon192 = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MyIgZmlsbD0iIzFhMWExYSIvPjx0ZXh0IHg9Ijk2IiB5PSIxMzUiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RDwvdGV4dD48L3N2Zz4=';
+  // apple-touch-icon via canvas (PNG 변환)
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    // 검정 배경 (둥근 모서리)
+    const r = 115;
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(512-r, 0);
+    ctx.quadraticCurveTo(512, 0, 512, r);
+    ctx.lineTo(512, 512-r);
+    ctx.quadraticCurveTo(512, 512, 512-r, 512);
+    ctx.lineTo(r, 512);
+    ctx.quadraticCurveTo(0, 512, 0, 512-r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fill();
+    // 흰색 D
+    ctx.fillStyle = 'white';
+    ctx.font = '700 290px -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('D', 256, 355);
+    const pngUrl = canvas.toDataURL('image/png');
+    // apple-touch-icon 교체
+    let atIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if(!atIcon){ atIcon = document.createElement('link'); atIcon.rel='apple-touch-icon'; document.head.appendChild(atIcon); }
+    atIcon.href = pngUrl;
+    // manifest
+    const manifest = {
+      name:'DaysToGo', short_name:'DaysToGo', start_url:'.', display:'standalone',
+      background_color:'#1a1a1a', theme_color:'#1a1a1a',
+      icons:[
+        {src:pngUrl, sizes:'512x512', type:'image/png', purpose:'any maskable'},
+        {src:icon192, sizes:'192x192', type:'image/svg+xml'}
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const mLink = document.createElement('link');
+    mLink.rel='manifest'; mLink.href=URL.createObjectURL(blob);
+    document.head.appendChild(mLink);
+  } catch(e){}
+})();
+</script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   :root{
