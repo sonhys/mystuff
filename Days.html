@@ -197,6 +197,9 @@
   .btn-save{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;
     border-radius:var(--radius-sm);font-size:16px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
   .btn-save:active{opacity:.85}
+  .btn-duplicate{width:100%;padding:12px;background:none;border:1px solid var(--border);
+    border-radius:var(--radius-sm);font-size:15px;color:var(--accent);cursor:pointer;margin-top:8px;font-family:inherit}
+  .btn-duplicate:active{background:var(--blue-bg)}
   .btn-delete{width:100%;padding:12px;background:none;border:1px solid var(--border);
     border-radius:var(--radius-sm);font-size:15px;color:var(--red);cursor:pointer;margin-top:8px;font-family:inherit}
   .btn-delete:active{background:var(--red-bg)}
@@ -254,31 +257,16 @@
 
 <div class="tab-bar">
   <div class="tab-bar-tabs">
-    <div class="tab active" data-tab="upcoming" onclick="switchTab('upcoming')" style="display:flex;align-items:center;gap:5px;padding-left:4px">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
-        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/>
-        <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.6"/>
-        <circle cx="8" cy="15" r="1.2" fill="currentColor"/>
-        <circle cx="12" cy="15" r="1.2" fill="currentColor"/>
-        <circle cx="16" cy="15" r="1.2" fill="currentColor"/>
-      </svg>
-    </div>
-    <div class="tab" data-tab="past" onclick="switchTab('past')" style="display:flex;align-items:center;gap:5px;padding-left:4px">
-      <svg width="22" height="18" viewBox="0 0 22 18" fill="none" style="flex-shrink:0">
-        <rect x="1" y="7" width="20" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/>
-        <rect x="1" y="7" width="20" height="3.5" rx="1" fill="currentColor" opacity=".13"/>
-        <path d="M2 7L4.5 1h13L20 7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-        <line x1="8.5" y1="13" x2="13.5" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-      <button class="io-btn" onclick="event.stopPropagation();importData()" title="가져오기">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </button>
-      <button class="io-btn" onclick="event.stopPropagation();exportData()" title="내보내기">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </button>
-    </div>
+    <div class="tab active" data-tab="upcoming" onclick="switchTab('upcoming')">D_Day</div>
+    <div class="tab" data-tab="past" onclick="switchTab('past')">지난 날</div>
+  </div>
+  <div class="tab-bar-actions">
+    <button class="io-btn" onclick="importData()" title="가져오기">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="io-btn" onclick="exportData()" title="내보내기">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </button>
   </div>
 </div>
 
@@ -380,6 +368,7 @@
     </div>
 
     <button class="btn-save" type="button" onclick="saveEvent()">저장</button>
+    <button class="btn-duplicate" type="button" id="btn-duplicate" onclick="duplicateEvent()" style="display:none">복제</button>
     <button class="btn-delete" type="button" id="btn-delete" onclick="deleteEvent()" style="display:none">이벤트 삭제</button>
   </div>
 </div>
@@ -588,6 +577,7 @@ function openSheet(idx){
   if(selDate){ dtEl.textContent = fmtDate(selDate); trigEl.classList.remove('placeholder'); }
   else { dtEl.textContent = '날짜를 선택하세요'; trigEl.classList.add('placeholder'); }
   document.getElementById('btn-delete').style.display = ev ? 'block' : 'none';
+  document.getElementById('btn-duplicate').style.display = ev ? 'block' : 'none';
   document.getElementById('cal-wrap').classList.remove('open');
   document.getElementById('repeat-opts').classList.remove('open');
   document.getElementById('repeat-chev').classList.remove('up');
@@ -615,6 +605,14 @@ function saveEvent(){
 
 function deleteEvent(){
   if(editIdx>=0){ events.splice(editIdx,1); save(); closeSheet(); renderAll(); }
+}
+
+function duplicateEvent(){
+  if(editIdx<0) return;
+  const orig = events[editIdx];
+  const copy = {...orig, title: orig.title + ' (복사)', created: isoToday()};
+  events.push(copy);
+  save(); closeSheet(); renderAll();
 }
 
 function shake(id){
