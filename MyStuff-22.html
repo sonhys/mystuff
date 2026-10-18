@@ -687,7 +687,11 @@ function openDetail(id) {
     function goTo(i){
       lbIdx=(i+lbPhotos.length)%lbPhotos.length;
       img.style.opacity='0';
-      setTimeout(function(){ img.src=lbPhotos[lbIdx]; img.style.opacity='1'; updateCount(); }, 120);
+      img.style.transform='';
+      setTimeout(function(){
+        img.src=lbPhotos[lbIdx]; img.style.opacity='1'; updateCount();
+        scale=1; posX=0; posY=0;
+      }, 120);
     }
 
     if(lbPhotos.length>1){
@@ -704,17 +708,87 @@ function openDetail(id) {
     };
     img.style.transition='opacity .12s';
 
-    /* 터치 스와이프 */
-    var tsX=0, tsY=0;
-    lb.addEventListener('touchstart',function(e){ tsX=e.touches[0].clientX; tsY=e.touches[0].clientY; },{passive:true});
+    /* ── 핀치 줌 + 스와이프 ── */
+    var scale=1, posX=0, posY=0;
+    var lastScale=1, lastPosX=0, lastPosY=0;
+    var pinching=false;
+    var tsX=0, tsY=0, tsMoved=false;
+
+    function applyTransform(s,x,y){
+      img.style.transform='scale('+s+') translate('+x+'px,'+y+'px)';
+    }
+    function resetZoom(){
+      scale=1; posX=0; posY=0;
+      img.style.transition='transform .2s ease';
+      applyTransform(1,0,0);
+      setTimeout(function(){ img.style.transition='opacity .12s'; },220);
+    }
+
+    lb.addEventListener('touchstart',function(e){
+      if(e.touches.length===2){
+        pinching=true;
+        var dx=e.touches[0].clientX-e.touches[1].clientX;
+        var dy=e.touches[0].clientY-e.touches[1].clientY;
+        lb._pinchDist=Math.sqrt(dx*dx+dy*dy);
+        lb._pinchMidX=(e.touches[0].clientX+e.touches[1].clientX)/2;
+        lb._pinchMidY=(e.touches[0].clientY+e.touches[1].clientY)/2;
+        lastScale=scale; lastPosX=posX; lastPosY=posY;
+      } else if(e.touches.length===1){
+        pinching=false;
+        tsX=e.touches[0].clientX; tsY=e.touches[0].clientY; tsMoved=false;
+        lb._dragStartX=posX; lb._dragStartY=posY;
+      }
+    },{passive:true});
+
+    lb.addEventListener('touchmove',function(e){
+      if(e.touches.length===2&&pinching){
+        e.preventDefault();
+        var dx=e.touches[0].clientX-e.touches[1].clientX;
+        var dy=e.touches[0].clientY-e.touches[1].clientY;
+        var dist=Math.sqrt(dx*dx+dy*dy);
+        var ratio=dist/lb._pinchDist;
+        scale=Math.min(Math.max(lastScale*ratio,1),5);
+        applyTransform(scale,posX,posY);
+      } else if(e.touches.length===1&&scale>1){
+        e.preventDefault();
+        tsMoved=true;
+        var dx2=e.touches[0].clientX-tsX;
+        var dy2=e.touches[0].clientY-tsY;
+        posX=lb._dragStartX+dx2/scale;
+        posY=lb._dragStartY+dy2/scale;
+        applyTransform(scale,posX,posY);
+      } else if(e.touches.length===1){
+        tsMoved=true;
+      }
+    },{passive:false});
+
     lb.addEventListener('touchend',function(e){
+      if(pinching){
+        pinching=false;
+        if(scale<1.05) resetZoom();
+        return;
+      }
+      /* 확대 중이면 스와이프/닫기 비활성 */
+      if(scale>1.05) return;
       var dx=e.changedTouches[0].clientX-tsX;
       var dy=e.changedTouches[0].clientY-tsY;
       if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){
-        if(lbPhotos.length>1) goTo(lbIdx+(dx<0?1:-1));
+        if(lbPhotos.length>1){ resetZoom(); goTo(lbIdx+(dx<0?1:-1)); }
       } else if(Math.abs(dy)>80&&Math.abs(dy)>Math.abs(dx)){
-        lb.remove(); /* 위/아래 스와이프로 닫기 */
+        lb.remove();
       }
+    },{passive:true});
+
+    /* 더블탭으로 줌 토글 */
+    var lastTap=0;
+    lb.addEventListener('touchend',function(e){
+      if(e.changedTouches.length!==1) return;
+      var now=Date.now();
+      if(now-lastTap<300){
+        if(scale>1.05) resetZoom();
+        else{ scale=2.5; applyTransform(scale,0,0); }
+      }
+      lastTap=now;
     },{passive:true});
 
     /* 키보드 지원 */
