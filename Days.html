@@ -314,18 +314,28 @@
   </div>
   <div class="tab-bar-actions">
     <button class="io-btn" onclick="exportData()" title="내보내기">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
       <div class="io-label">내보내기</div>
     </button>
     <button class="io-btn" onclick="importData()" title="불러들이기">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
       <div class="io-label">불러들이기</div>
     </button>
   </div>
 </div>
 
-<!-- hidden file input for import -->
+<!-- hidden file input for import only -->
 <input type="file" id="import-input" accept=".json" style="display:none" onchange="handleImport(event)">
+<!-- hidden anchor for export download -->
+<a id="export-anchor" style="display:none"></a>
 
 <div class="panels">
   <div class="panel active" id="panel-upcoming"></div>
@@ -783,8 +793,8 @@ async function exportData(){
   const payload = JSON.stringify({app:'DaysToGo',version:1,exported:new Date().toISOString(),events}, null, 2);
   const blob = new Blob([payload], {type:'application/json'});
 
-  // ① 저장 위치 선택 API (Chrome 86+ / Samsung Internet 지원 시)
-  if(window.showSaveFilePicker){
+  // ① 저장 위치 선택 API (지원하는 환경)
+  if(typeof window.showSaveFilePicker === 'function'){
     try {
       const fh = await window.showSaveFilePicker({
         suggestedName: fileName,
@@ -793,25 +803,26 @@ async function exportData(){
       const writable = await fh.createWritable();
       await writable.write(blob);
       await writable.close();
-      alert(`✓ 저장 완료: ${fh.name}`);
+      alert(`✓ 저장 완료!\n파일명: ${fh.name}`);
       return;
     } catch(e){
       if(e.name==='AbortError') return; // 사용자가 취소
-      // 실패 시 아래 fallback으로 이어짐
     }
   }
 
-  // ② Fallback — 기본 다운로드 (위치 선택 불가, 기기 기본 다운로드 폴더)
+  // ② Fallback — 미리 만들어 둔 전용 앵커 사용 (import input과 충돌 방지)
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fileName;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  const anchor = document.getElementById('export-anchor');
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
 function importData(){
-  document.getElementById('import-input').value = '';
-  document.getElementById('import-input').click();
+  const input = document.getElementById('import-input');
+  input.value = '';
+  input.click();
 }
 
 function handleImport(e){
