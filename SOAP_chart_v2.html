@@ -40,8 +40,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row > *{flex:1 1 0}
 .small{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
-.notice{background:var(--notice-bg);border:1px solid var(--notice-line);border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.55;margin-bottom:12px}
-details.settings{border:1px solid var(--line);border-radius:12px;padding:4px 12px 10px;margin-bottom:12px}
+.notice{background:var(--notice-bg);border:1px solid var(--notice-line);border-radius:10px;padding:6px 10px;font-size:12.5px;line-height:1.5;margin-bottom:10px}
+details.settings{border:1px solid var(--line);border-radius:12px;padding:4px 12px 10px;margin-top:16px}
 details.settings summary{cursor:pointer;font-weight:700;padding:8px 0}
 .check{display:flex;align-items:center;gap:8px;font-weight:400;margin:8px 0}
 .check input{width:20px;height:20px;flex:0 0 auto}
@@ -72,28 +72,9 @@ kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 4px;
 <div class="wrap"><div class="card">
 
 <h1>외래 차트 보조 v2</h1>
-<div class="desc">초진은 SOAP 생성, 재진은 이전 차트에 오늘 결과를 날짜와 함께 붙여요.</div>
 
-<div class="notice">⚠️ <b>AI 기능</b>을 쓰면 입력 내용이 Anthropic 서버로 전송돼요. 환자 이름, 등록번호, 생년월일은 입력하지 마세요. 주민번호와 전화번호는 전송 전에 자동으로 가려져요. <b>⚡ 즉시 병합</b>은 이 기기 안에서만 처리돼요.</div>
 
-<details class="settings" id="settings">
-  <summary>⚙️ 설정 (API 키, 모델)</summary>
-  <label for="apiKey">Anthropic API Key</label>
-  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
-  <label class="check"><input type="checkbox" id="saveKey" checked> 이 기기에 키 저장 (공용 PC에서는 끄세요)</label>
-  <button class="danger" id="deleteKeyBtn" type="button">저장된 키 삭제</button>
-
-  <label for="model">모델</label>
-  <select id="model">
-    <option value="claude-opus-5-5">Claude Opus 5.5 — 가장 정확 (기본)</option>
-    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — 균형</option>
-    <option value="claude-haiku-5-5">Claude Haiku 5.5 — 가장 빠르고 저렴</option>
-  </select>
-  <div class="small">모든 모델은 속도를 위해 짧게 생각하도록 설정했어요. 진료 중 속도가 가장 중요하면 Haiku를 써 보시고, 결과가 아쉬우면 Opus로 바꿔 보세요. 선택은 기억돼요.</div>
-
-  <label class="check"><input type="checkbox" id="maskPII" checked> 전송 전 주민번호·전화번호 자동 가림</label>
-  <label class="check"><input type="checkbox" id="autoCopy" checked> 완료되면 결과 자동 복사</label>
-</details>
+<div class="notice">⚠️ AI 기능(SOAP 생성·AI 정리)은 입력 내용을 Anthropic으로 보내요. ⚡ 즉시 병합은 기기 안에서만 처리해요.</div>
 
 <div class="tabs" role="tablist">
   <button class="tab" role="tab" id="tabInitial" aria-selected="true" aria-controls="panelInitial" type="button">초진 · SOAP 생성</button>
@@ -107,7 +88,7 @@ kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 4px;
   <div class="actions">
     <button class="primary" id="genInitialBtn" type="button">SOAP 생성 <kbd>Ctrl+Enter</kbd></button>
     <button class="light" id="stopBtn1" type="button" disabled>중지</button>
-    <button class="light" id="clearInitialBtn" type="button">초기화</button>
+    <button class="light" id="newPatientBtn1" type="button">새 환자 <kbd>Alt+N</kbd></button>
   </div>
 </section>
 
@@ -140,7 +121,7 @@ kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 4px;
   <div class="actions f">
     <button class="primary" id="mergeBtn" type="button">⚡ 즉시 병합 (AI 없음)</button>
     <button class="accent" id="genFollowBtn" type="button">AI 정리 (A/P 포함)</button>
-    <button class="light" id="clearFollowBtn" type="button">초기화</button>
+    <button class="light" id="newPatientBtn2" type="button">새 환자 <kbd>Alt+N</kbd></button>
   </div>
   <div class="small">⚡ 즉시 병합은 0초 만에 끝나고 아무것도 전송하지 않아요. A/P까지 다듬어야 할 때만 AI 정리를 쓰세요.</div>
   <button class="light" id="stopBtn2" type="button" disabled style="display:none;margin-top:8px;width:100%">중지</button>
@@ -154,6 +135,25 @@ kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 4px;
   <button class="accent" id="copyBtn" type="button" disabled>복사</button>
   <button class="light" id="rerunBtn" type="button" disabled>재실행</button>
 </div>
+
+<details class="settings" id="settings">
+  <summary>⚙️ 설정 (API 키, 모델)</summary>
+  <label for="apiKey">Anthropic API Key</label>
+  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+  <label class="check"><input type="checkbox" id="saveKey" checked> 이 기기에 키 저장 (공용 PC에서는 끄세요)</label>
+  <button class="danger" id="deleteKeyBtn" type="button">저장된 키 삭제</button>
+
+  <label for="model">모델</label>
+  <select id="model">
+    <option value="claude-haiku-5-5" selected>Claude Haiku 5.5 — 가장 빠름 (기본)</option>
+    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — 균형</option>
+    <option value="claude-opus-5-5">Claude Opus 5.5 — 가장 정확, 느림</option>
+  </select>
+  <div class="small">모든 모델은 속도를 위해 짧게 생각하도록 설정했어요. 정리 품질이 아쉬우면 Sonnet이나 Opus로 바꿔 보세요. 선택은 기억돼요.</div>
+
+  <label class="check"><input type="checkbox" id="maskPII" checked> 전송 전 주민번호·전화번호 자동 가림</label>
+  <label class="check"><input type="checkbox" id="autoCopy" checked> 완료되면 결과 자동 복사</label>
+</details>
 
 </div></div>
 
@@ -381,9 +381,10 @@ function instantMerge(prev, add, dateStr, pos){
 /* ───────── Claude 호출 (스트리밍) ───────── */
 let controller = null;
 let lastRun = null;
+let resetting = false;
 
 function setBusy(busy){
-  ['genInitialBtn','genFollowBtn','mergeBtn','clearInitialBtn','clearFollowBtn','rerunBtn','copyBtn'].forEach(id => $(id).disabled = busy);
+  ['genInitialBtn','genFollowBtn','mergeBtn','rerunBtn','copyBtn'].forEach(id => $(id).disabled = busy);
   ['stopBtn1','stopBtn2'].forEach(id => $(id).disabled = !busy);
   $('stopBtn2').style.display = busy && currentTab() === 'follow' ? 'block' : 'none';
   $('genInitialBtn').firstChild.textContent = busy ? '작성 중... ' : 'SOAP 생성 ';
@@ -400,7 +401,7 @@ function friendlyHttpError(status, msg){
 
 async function runClaude(mode){
   const apiKey = $('apiKey').value.trim();
-  if(!apiKey){ $('settings').open = true; $('apiKey').focus(); setStatus('설정에서 Anthropic API 키를 입력하세요.', 'err'); return; }
+  if(!apiKey){ $('settings').open = true; $('apiKey').scrollIntoView({block:'center'}); $('apiKey').focus(); setStatus('설정에서 Anthropic API 키를 입력하세요.', 'err'); return; }
 
   let system, userText, maxTokens;
   if(mode === 'initial'){
@@ -509,7 +510,9 @@ async function runClaude(mode){
       setStatus(msg);
     }
   }catch(err){
-    if(err.name === 'AbortError'){
+    if(resetting){
+      setStatus('');
+    }else if(err.name === 'AbortError'){
       setStatus(timedOut ? '응답이 45초 동안 없어서 중단했어요. 네트워크를 확인하고 다시 시도하세요.' : '중지했어요.', timedOut ? 'err' : 'warn');
     }else if(err instanceof TypeError){
       setStatus('네트워크 오류예요. 인터넷 연결을 확인하세요.', 'err');
@@ -518,6 +521,7 @@ async function runClaude(mode){
     }
   }finally{
     clearInterval(tick); clearTimeout(idleTimer);
+    if(resetting){ result.value = ''; resetting = false; }
     controller = null;
     setBusy(false);
     $('copyBtn').disabled = !result.value.trim();
@@ -526,6 +530,23 @@ async function runClaude(mode){
 }
 
 /* ───────── 화면 동작 ───────── */
+function focusInput(){
+  const el = currentTab() === 'follow' ? ($('prevChart').value.trim() ? $('todayAdd') : $('prevChart')) : $('note');
+  el.focus();
+}
+
+/* 새 환자: 진행 중이면 중단하고 입력·결과를 모두 비움 */
+function newPatient(){
+  if(controller){ resetting = true; controller.abort(); }
+  ['note','prevChart','todayAdd','result'].forEach(id => $(id).value = '');
+  saveDrafts();
+  $('visitDate').value = todayISO();
+  lastRun = null;
+  $('copyBtn').disabled = true; $('rerunBtn').disabled = true;
+  setStatus('새 환자 — 입력란이 비워졌어요.');
+  focusInput();
+}
+
 function currentTab(){ return $('tabFollow').getAttribute('aria-selected') === 'true' ? 'follow' : 'initial'; }
 function showTab(which){
   const f = which === 'follow';
@@ -534,6 +555,7 @@ function showTab(which){
   $('panelInitial').hidden = f;
   $('panelFollow').hidden = !f;
   store.sset('opd_tab', which);
+  focusInput();
 }
 
 function doMerge(){
@@ -558,7 +580,7 @@ function saveDrafts(){ DRAFT_FIELDS.forEach(id => store.sset('opd_draft_' + id, 
 
 window.addEventListener('DOMContentLoaded', () => {
   const k = store.get(KEY_STORE);
-  if(k) $('apiKey').value = k; else $('settings').open = true;
+  if(k) $('apiKey').value = k;
   const m = store.get('opd_model'); if(m && MODEL_CONFIG[m]) $('model').value = m;
   const fmt = store.get('opd_datefmt'); if(fmt) $('dateFmt').value = fmt;
   const pos = store.get('opd_pos'); if(pos) $('insertPos').value = pos;
@@ -568,6 +590,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('visitDate').value = todayISO();
   DRAFT_FIELDS.forEach(id => { const v = store.sget('opd_draft_' + id); if(v) $(id).value = v; });
   showTab(store.sget('opd_tab') === 'follow' ? 'follow' : 'initial');
+  if(!k) setStatus('처음 쓰실 때는 맨 아래 ⚙️ 설정에 Anthropic API 키를 넣어 주세요. ⚡ 즉시 병합은 키 없이 돼요.', 'warn');
 
   $('tabInitial').onclick = () => showTab('initial');
   $('tabFollow').onclick = () => showTab('follow');
@@ -582,8 +605,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setStatus(await copyText(t) ? '복사 완료' : '복사에 실패했어요. 결과를 길게 눌러 직접 복사하세요.', 'warn');
     if($('status').textContent === '복사 완료') $('status').className = 'status';
   };
-  $('clearInitialBtn').onclick = () => { $('note').value = ''; $('result').value = ''; saveDrafts(); setStatus(''); $('copyBtn').disabled = true; };
-  $('clearFollowBtn').onclick = () => { $('prevChart').value = ''; $('todayAdd').value = ''; $('result').value = ''; saveDrafts(); setStatus(''); $('copyBtn').disabled = true; };
+  $('newPatientBtn1').onclick = $('newPatientBtn2').onclick = newPatient;
   $('deleteKeyBtn').onclick = () => { store.del(KEY_STORE); $('apiKey').value = ''; setStatus('저장된 API 키를 삭제했어요.'); };
   $('saveKey').onchange = () => { store.set('opd_savekey', $('saveKey').checked ? '1' : '0'); if(!$('saveKey').checked) store.del(KEY_STORE); };
   $('model').onchange = () => store.set('opd_model', $('model').value);
@@ -595,6 +617,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('result').addEventListener('input', () => { $('copyBtn').disabled = !$('result').value.trim(); });
 
   document.addEventListener('keydown', e => {
+    if(e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN'){ e.preventDefault(); newPatient(); return; }
     if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
       e.preventDefault();
       if(controller) return;
