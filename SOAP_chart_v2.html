@@ -171,6 +171,7 @@ PI:
 PMH: 
 PSH: 
 FH: 
+SH: 
 [O]
 V/S: 
 PE: 
@@ -182,7 +183,7 @@ Lab:
 1. 머리표 [S], [O], [A], [P]는 각각 한 줄에 단독으로 쓴다.
 2. 현병력은 반드시 "PI"로 쓴다. "HPI"라고 쓰지 않는다.
 3. 입력에 언급이 없는 항목은 줄째로 뺀다. "없음", "N/S", "특이 기재 없음", "미상" 같은 빈칸 채우기를 하지 않는다.
-4. PSH는 수술 언급이 있을 때만 쓴다. V/S, PE, Lab도 실제 기록이 있을 때만 쓴다.
+4. PSH는 수술 언급이 있을 때만, SH(흡연·음주·직업 등)는 입력에 해당 내용이 있을 때만 쓴다. V/S, PE, Lab도 실제 기록이 있을 때만 쓴다.
 5. [O]에 쓸 내용이 하나도 없으면 [O] 머리표까지 통째로 뺀다.
 6. 환자가 분명히 "없다"고 말한 병력은 "HTN(-)"처럼 짧게 쓴다. 가족력은 환자 본인 병력에 넣지 않는다.
 7. 관련 양성·음성 증상과 환자의 요구는 PI에 함께 쓴다.
@@ -267,6 +268,37 @@ function stripMarkdown(t){
     .replace(/^#{1,6}\s+/gm, '')
     .replace(/^```.*$/gm, '')
     .replace(/`([^`]+)`/g, '$1');
+}
+
+/* 초진 결과 정리: AI가 지시를 어겨도 코드에서 한 번 더 걸러냄
+   - HPI → PI
+   - 입력에 해당 내용이 없으면 PSH / SH / V/S 줄 삭제
+   - "없음", "N/S" 같은 빈칸 채우기 줄 삭제 */
+const GUARDS = [
+  { label: /^(PSH|Op\s*Hx|수술력)\b/i,             need: /수술|op\b|OP|s\/p|절제|-ectomy|ectomy|repair|이식|시술/i },
+  { label: /^(SH|Social(\s*Hx|\s*history)?|사회력)\b/i, need: /흡연|담배|smok|음주|술|alcohol|직업|운동|exercise|커피|caffeine|SH\b/i },
+  { label: /^(V\/?S|Vital|활력)/i,                 need: /BP|혈압|맥박|HR\b|PR\b|체온|BT\b|RR\b|호흡수|SpO2|산소포화|\d{2,3}\s*\/\s*\d{2,3}/i }
+];
+const FILLER = /^(없음|해당\s*없음|특이(사항|\s*기재)?\s*없음|언급\s*없음|기록\s*없음|미상|미기재|N\/?S|N\/?A|unknown|none|non-?specific|-|—|\(-\)|\.)\s*\.?$/i;
+function cleanInitial(text, input){
+  const out = [];
+  for(let line of text.replace(/^(\s*)HPI\b/gm, '$1PI').split('\n')){
+    const t = line.trim();
+    const m = t.match(/^([A-Za-z가-힣\/ ]{1,20}?)\s*[:：]\s*(.*)$/);
+    if(m){
+      const g = GUARDS.find(g => g.label.test(m[1].trim()));
+      if(g && !g.need.test(input)) continue;
+      if(!m[2].trim() || FILLER.test(m[2].trim())) continue;
+    }
+    out.push(line);
+  }
+  // 내용 없는 머리표 제거 (예: [O] 다음 바로 [A])
+  const isHead = l => /^\s*\[[SOAP]\]\s*$/i.test(l);
+  return out.filter((l, i) => {
+    if(!isHead(l)) return true;
+    for(let j = i + 1; j < out.length; j++){ if(isHead(out[j])) return false; if(out[j].trim()) return true; }
+    return false;
+  }).join('\n');
 }
 
 async function copyText(text){
@@ -417,11 +449,11 @@ async function runClaude(mode){
   const apiKey = $('apiKey').value.trim();
   if(!apiKey){ $('settings').open = true; $('apiKey').scrollIntoView({block:'center'}); $('apiKey').focus(); setStatus('설정에서 Anthropic API 키를 입력하세요.', 'err'); return; }
 
-  let system, userText, maxTokens;
+  let system, userText, maxTokens, rawInput = '';
   if(mode === 'initial'){
     const note = $('note').value.trim();
     if(!note){ setStatus('임상정보를 입력하세요.', 'err'); $('note').focus(); return; }
-    system = PROMPT_INITIAL; userText = note; maxTokens = 4000;
+    system = PROMPT_INITIAL; userText = note; rawInput = note; maxTokens = 4000;
   }else{
     const prev = $('prevChart').value.trim(), add = $('todayAdd').value.trim();
     if(!prev || !add){ setStatus('이전 차트와 오늘 추가할 내용을 모두 입력하세요.', 'err'); return; }
@@ -498,7 +530,7 @@ async function runClaude(mode){
         if(ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta'){
           if(!firstTokenAt){ firstTokenAt = performance.now(); setStatus('받는 중...'); }
           text += ev.delta.text;
-          result.value = text;
+          result.value = mode === 'initial' ? cleanInitial(text, rawInput) : text;
           result.scrollTop = result.scrollHeight;
         }else if(ev.type === 'message_delta' && ev.delta?.stop_reason){
           stopReason = ev.delta.stop_reason;
@@ -508,7 +540,7 @@ async function runClaude(mode){
       }
     }
 
-    result.value = stripMarkdown(text).trim();
+    result.value = (mode === 'initial' ? cleanInitial(stripMarkdown(text), rawInput) : stripMarkdown(text)).trim();
     const secs = ((performance.now()-t0)/1000).toFixed(1);
     const maskNote = masked ? ` · 개인정보 ${masked}건 가림` : '';
 
