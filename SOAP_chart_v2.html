@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f7fb">
+<title>외래 차트 보조 v2</title>
+<style>
+:root{
+  --bg:#f4f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#cfd5dd;
+  --field:#fff; --field2:#fbfcfe; --primary:#111827; --primary-text:#fff;
+  --accent:#2563eb; --light:#e8edf3; --ok:#047857; --warn:#b45309; --err:#b91c1c;
+  --notice-bg:#fff7ed; --notice-line:#fdba74;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f141b; --card:#171e27; --text:#e5e7eb; --muted:#9ca3af; --line:#334155;
+    --field:#0f1620; --field2:#111a24; --primary:#e5e7eb; --primary-text:#111827;
+    --accent:#3b82f6; --light:#263241; --ok:#34d399; --warn:#fbbf24; --err:#f87171;
+    --notice-bg:#2a1f12; --notice-line:#92400e;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(0,0,0,.08)}
+h1{font-size:23px;margin:0 0 4px}
+.desc{font-size:14px;color:var(--muted);margin-bottom:12px}
+label{display:block;font-weight:700;margin:12px 0 6px}
+input,textarea,select{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:16px;background:var(--field);color:var(--text);font-family:inherit}
+input,select{height:46px}
+textarea{line-height:1.6;resize:vertical}
+button{min-height:48px;border:0;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;padding:0 14px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--primary);color:var(--primary-text)}
+.accent{background:var(--accent);color:#fff}
+.light{background:var(--light);color:var(--text)}
+.danger{background:var(--light);color:var(--err)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row > *{flex:1 1 0}
+.small{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+.notice{background:var(--notice-bg);border:1px solid var(--notice-line);border-radius:10px;padding:6px 10px;font-size:12.5px;line-height:1.5;margin-bottom:10px}
+details.settings{border:1px solid var(--line);border-radius:12px;padding:4px 12px 10px;margin-top:16px}
+details.settings summary{cursor:pointer;font-weight:700;padding:8px 0}
+.check{display:flex;align-items:center;gap:8px;font-weight:400;margin:8px 0}
+.check input{width:20px;height:20px;flex:0 0 auto}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}
+.tab{background:var(--light);color:var(--text)}
+.tab[aria-selected="true"]{background:var(--primary);color:var(--primary-text)}
+.panel[hidden]{display:none}
+#note{min-height:220px}
+#prevChart{min-height:220px;font-size:15px}
+#todayAdd{min-height:110px}
+.actions{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin:12px 0 4px}
+.actions.f{grid-template-columns:1.3fr 1.3fr 1fr}
+#result{min-height:280px;background:var(--field2);font-size:16px;line-height:1.7}
+.status{min-height:22px;font-size:14px;margin-top:8px;color:var(--ok);white-space:pre-wrap}
+.status.warn{color:var(--warn)} .status.err{color:var(--err)}
+.result-actions{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:10px}
+kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 4px;color:var(--muted)}
+@media(max-width:680px){
+  .wrap{padding:8px}
+  .card{padding:14px;border-radius:14px}
+  h1{font-size:20px}
+  .actions,.actions.f{grid-template-columns:1fr 1fr}
+  .actions > :first-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+
+<h1>외래 차트 보조 v2</h1>
+
+
+<div class="notice">⚠️ AI 기능(SOAP 생성·AI 정리)은 입력 내용을 Anthropic으로 보내요. ⚡ 즉시 병합은 기기 안에서만 처리해요.</div>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" id="tabInitial" aria-selected="true" aria-controls="panelInitial" type="button">초진 · SOAP 생성</button>
+  <button class="tab" role="tab" id="tabFollow" aria-selected="false" aria-controls="panelFollow" type="button">재진 · 결과 추가</button>
+</div>
+
+<!-- 초진 -->
+<section class="panel" id="panelInitial" role="tabpanel" aria-labelledby="tabInitial">
+  <label for="note">임상정보 (자유롭게)</label>
+  <textarea id="note" placeholder="예: 3일 전부터 상복부 불쾌감. 구역(+), 구토(-). 고혈압(+). 어머니 당뇨병, 아버지 고혈압. 3년 전 충수절제술. BC, CBC, 내시경 권유했으나 검사 거부. 약만 원함. 약 처방 3일, 경과 관찰."></textarea>
+  <div class="actions">
+    <button class="primary" id="genInitialBtn" type="button">SOAP 생성 <kbd>Ctrl+Enter</kbd></button>
+    <button class="light" id="stopBtn1" type="button" disabled>중지</button>
+    <button class="light" id="newPatientBtn1" type="button">새 환자 <kbd>Alt+N</kbd></button>
+  </div>
+</section>
+
+<!-- 재진 -->
+<section class="panel" id="panelFollow" role="tabpanel" aria-labelledby="tabFollow" hidden>
+  <label for="prevChart">이전 차트 (그대로 붙여넣기)</label>
+  <textarea id="prevChart" placeholder="[S]&#10;DM f/u. 특이 증상 없음.&#10;[O]&#10;HbA1c 7.5(26.08.20)&#10;LDL 110(26.08.20)&#10;[A]&#10;T2DM, dyslipidemia&#10;[P]&#10;metformin 유지, 3개월 후 f/u"></textarea>
+
+  <label for="todayAdd">오늘 추가할 내용</label>
+  <textarea id="todayAdd" placeholder="예: HbA1c 7.2, LDL 98, Cr 0.9&#10;S: 저혈당 증상 없음&#10;P: atorvastatin 10mg 추가"></textarea>
+  <div class="small">검사는 "항목 값" 형식으로 쉼표나 줄바꿈으로 구분해요. "S:", "A:", "P:"로 시작하는 줄은 해당 칸에 들어가요. 숫자가 없는 메모는 S에 들어가요.</div>
+
+  <div class="row" style="margin-top:4px">
+    <div><label for="visitDate">날짜</label><input id="visitDate" type="date"></div>
+    <div><label for="dateFmt">날짜 표기</label>
+      <select id="dateFmt">
+        <option value="yy.mm.dd">26.11.20</option>
+        <option value="yyyy.mm.dd">2026.11.20</option>
+        <option value="yyyy-mm-dd">2026-11-20</option>
+        <option value="mm/dd">11/20</option>
+        <option value="yymmdd">261120</option>
+      </select></div>
+    <div><label for="insertPos">새 결과 위치</label>
+      <select id="insertPos">
+        <option value="front">이전 결과 앞</option>
+        <option value="back">이전 결과 뒤</option>
+      </select></div>
+  </div>
+
+  <div class="actions f">
+    <button class="primary" id="mergeBtn" type="button">⚡ 즉시 병합 (AI 없음)</button>
+    <button class="accent" id="genFollowBtn" type="button">AI 정리 (A/P 포함)</button>
+    <button class="light" id="newPatientBtn2" type="button">새 환자 <kbd>Alt+N</kbd></button>
+  </div>
+  <div class="small">⚡ 즉시 병합은 0초 만에 끝나고 아무것도 전송하지 않아요. A/P까지 다듬어야 할 때만 AI 정리를 쓰세요.</div>
+  <button class="light" id="stopBtn2" type="button" disabled style="display:none;margin-top:8px;width:100%">중지</button>
+</section>
+
+<div class="status" id="status" aria-live="polite"></div>
+
+<label for="result">결과 (직접 수정 가능)</label>
+<textarea id="result" spellcheck="false"></textarea>
+<div class="result-actions">
+  <button class="accent" id="copyBtn" type="button" disabled>복사</button>
+  <button class="light" id="rerunBtn" type="button" disabled>재실행</button>
+</div>
+
+<details class="settings" id="settings">
+  <summary>⚙️ 설정 (API 키, 모델)</summary>
+  <label for="apiKey">Anthropic API Key</label>
+  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+  <label class="check"><input type="checkbox" id="saveKey" checked> 이 기기에 키 저장 (공용 PC에서는 끄세요)</label>
+  <button class="danger" id="deleteKeyBtn" type="button">저장된 키 삭제</button>
+
+  <label for="model">모델</label>
+  <select id="model">
+    <option value="claude-haiku-5-5" selected>Claude Haiku 5.5 — 가장 빠름 (기본)</option>
+    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — 균형</option>
+    <option value="claude-opus-5-5">Claude Opus 5.5 — 가장 정확, 느림</option>
+  </select>
+  <div class="small">모든 모델은 속도를 위해 짧게 생각하도록 설정했어요. 정리 품질이 아쉬우면 Sonnet이나 Opus로 바꿔 보세요. 선택은 기억돼요.</div>
+
+  <label class="check"><input type="checkbox" id="maskPII" checked> 전송 전 주민번호·전화번호 자동 가림</label>
+  <label class="check"><input type="checkbox" id="autoCopy" checked> 완료되면 결과 자동 복사</label>
+</details>
+
+</div></div>
+
+<script>
+'use strict';
+
+/* ───────── 프롬프트 ───────── */
+const PROMPT_INITIAL = `당신은 한국어 외래 의무기록 작성 보조자이다.
+사용자가 두서없이 입력한 초진 임상 메모를 임상 문맥에 맞게 SOAP 형식으로 재구성한다.
+
+규칙:
+1. 출력은 [S], [O], [A], [P] 순서로 작성하고, 각 머리표는 한 줄에 단독으로 쓴다.
+2. S에는 CC, 현병력, 관련 양성·음성 증상, PMH, PSH, FH, 환자의 요구를 정돈한다.
+3. O에는 실제로 확인된 활력징후, 진찰, 검사결과만 넣는다. 없으면 "특이 기재 없음"으로 쓴다.
+4. 검사를 권유했으나 거부한 경우 O에 넣지 말고 P에 기록한다.
+5. A에는 합리적인 임상적 인상과 감별진단을 제시한다.
+6. 확진 근거가 부족하면 r/o, 의심, 감별 필요로 표현한다.
+7. 입력하지 않은 검사결과, 활력징후, 약 이름, 용량, 날짜는 만들지 않는다.
+8. 음성 병력은 질환 없음으로 정확히 표현한다.
+9. 가족력은 환자 본인의 질환으로 분류하지 않는다.
+10. P에는 실제 입력된 처방, 검사 권유·거부, 교육, 추적관찰만 반영한다.
+11. 국내 외래 차트 관행처럼 영문 약어(CC, HTN, DM, r/o, f/u 등)를 섞어 짧은 구 형태로 간결하게 쓴다.
+12. 마크다운 기호(**, #, \`, 표)를 쓰지 않는다. EMR에 그대로 붙여넣을 일반 텍스트만 쓴다.
+13. 설명이나 머리말 없이 SOAP 기록만 출력한다.`;
+
+const PROMPT_FOLLOW = `당신은 한국어 외래 재진 차트 갱신 보조자이다.
+의사가 이전 차트를 복사해 두고, 오늘 새로 나온 내용만 추가하려 한다. 이전 차트를 바탕으로 오늘 차트를 만든다.
+
+규칙:
+1. 이전 차트의 문구, 순서, 줄바꿈, 약어는 최대한 그대로 둔다. 다시 쓰거나 요약하지 않는다.
+2. 오늘 검사결과는 이전 차트의 같은 항목 줄에 "값(날짜)" 형태로 추가한다. 위치는 사용자가 지정한 대로 이전 값의 앞 또는 뒤에 쉼표로 이어 붙인다. 이전 값은 지우지 않는다.
+3. 이전 차트에 없는 검사 항목은 O의 끝에 새 줄로 "항목 값(날짜)" 형태로 추가한다.
+4. 오늘 증상이나 경과 메모는 S의 맨 앞에 "(날짜) 내용" 한 줄로 추가한다.
+5. A와 P는 오늘 입력에 처방 변경, 새 진단, 검사 계획 등이 있을 때만 최소한으로 고친다. 고친 줄 앞에는 "(날짜)"를 붙인다.
+6. 입력하지 않은 검사결과, 약 이름, 용량, 진단은 만들지 않는다.
+7. 날짜는 사용자가 지정한 표기 그대로 쓴다.
+8. 마크다운 기호(**, #, \`, 표)를 쓰지 않는다.
+9. 설명이나 머리말 없이 갱신된 차트 전체만 출력한다.`;
+
+/* 속도 우선 설정: 모델별로 생각을 최소화 */
+const MODEL_CONFIG = {
+  'claude-opus-5-5':   { output_config:{effort:'low'} },                              // 생각 끄기 불가 → 가장 낮은 effort
+  'claude-sonnet-5-5': { output_config:{effort:'low'}, thinking:{type:'between_tools'} }, // 생각 끔
+  'claude-haiku-5-5':  { output_config:{effort:'low'}, thinking:{type:'disabled'} }       // 생각 끔
+};
+
+/* ───────── 공통 유틸 ───────── */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch{} },
+  del(k){ try{ localStorage.removeItem(k); }catch{} },
+  sget(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } },
+  sset(k,v){ try{ sessionStorage.setItem(k,v); }catch{} }
+};
+const KEY_STORE = 'opd_anthropic_key';
+
+function setStatus(msg, kind){
+  const s = $('status');
+  s.textContent = msg || '';
+  s.className = 'status' + (kind ? ' ' + kind : '');
+}
+
+function formatDate(iso, fmt){
+  const [y,m,d] = (iso || '').split('-');
+  if(!y) return '';
+  const yy = y.slice(2);
+  switch(fmt){
+    case 'yyyy.mm.dd': return `${y}.${m}.${d}`;
+    case 'yyyy-mm-dd': return `${y}-${m}-${d}`;
+    case 'mm/dd':      return `${m}/${d}`;
+    case 'yymmdd':     return `${yy}${m}${d}`;
+    default:           return `${yy}.${m}.${d}`;
+  }
+}
+function todayISO(){
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+/* 전송 전 개인정보 가림 */
+function maskPII(text){
+  let n = 0;
+  const out = text
+    .replace(/\b\d{6}\s*-\s*[1-8]\d{6}\b/g, () => { n++; return '[주민번호]'; })
+    .replace(/\b\d{6}[1-8]\d{6}\b/g, () => { n++; return '[주민번호]'; })
+    .replace(/\b01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}\b/g, () => { n++; return '[전화번호]'; })
+    .replace(/\b0(2|[3-6][1-5])[-\s.]?\d{3,4}[-\s.]?\d{4}\b/g, () => { n++; return '[전화번호]'; });
+  return { text: out, count: n };
+}
+
+/* 마크다운 잔여 기호 제거 */
+function stripMarkdown(t){
+  return t
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^```.*$/gm, '')
+    .replace(/`([^`]+)`/g, '$1');
+}
+
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }catch{ return false; }
+  }
+}
+
+/* ───────── ⚡ 즉시 병합 (AI 없음, 로컬 처리) ───────── */
+const SECTION_RE = /^\s*(?:\[\s*([SOAP])\s*\]|([SOAP])\s*[:>)]|<\s*([SOAP])\s*>)/i;
+const VALUE_RE = /^[<>≤≥+\-]?\d[\d.,]*(?:\s*(?:%|[a-zA-Zµμ]+(?:\/[a-zA-Z0-9.]+)?))?(?:\s*\([^)\n]*\))?/;
+
+function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function findSections(lines){
+  const sec = {};
+  lines.forEach((l,i) => {
+    const m = l.match(SECTION_RE);
+    if(m){ const k = (m[1]||m[2]||m[3]).toUpperCase(); if(!(k in sec)) sec[k] = i; }
+  });
+  return sec;
+}
+/* 섹션의 마지막 내용 줄 다음 위치 */
+function sectionEnd(lines, sec, key){
+  if(!(key in sec)) return -1;
+  const start = sec[key];
+  const nexts = Object.values(sec).filter(i => i > start);
+  let end = nexts.length ? Math.min(...nexts) : lines.length;
+  while(end - 1 > start && lines[end-1].trim() === '') end--;
+  return end;
+}
+
+function parseAdditions(text){
+  const items = [], notes = [];
+  for(const rawLine of text.split('\n')){
+    const line = rawLine.trim();
+    if(!line) continue;
+    const sm = line.match(/^([SOAP])\s*[:>)]\s*(.*)$/i);
+    if(sm){ notes.push({ sec: sm[1].toUpperCase(), text: sm[2].trim() }); continue; }
+    // 쉼표 뒤에 글자가 오면 항목 구분 (1,200 같은 숫자 쉼표는 유지)
+    const parts = line.split(/\s*,\s*(?=[A-Za-z가-힣])/);
+    for(const p of parts){
+      const m = p.match(/^([A-Za-z가-힣][A-Za-z0-9가-힣_\-\/.%\s]*?)(?:\s*[:=]\s*|\s+)([<>≤≥+\-]?\d.*)$/);
+      if(m) items.push({ name: m[1].trim(), value: m[2].trim() });
+      else notes.push({ sec: 'S', text: p.trim() });
+    }
+  }
+  return { items, notes };
+}
+
+function instantMerge(prev, add, dateStr, pos){
+  const lines = prev.replace(/\r\n/g,'\n').split('\n');
+  const { items, notes } = parseAdditions(add);
+  const report = { updated: [], added: [] };
+  const newO = [];
+
+  for(const it of items){
+    const stamp = `${it.value}(${dateStr})`;
+    const nameRe = new RegExp(`(^|[^A-Za-z0-9가-힣])(${escRe(it.name)})(?![A-Za-z0-9])`, 'i');
+    let sec = findSections(lines);
+    const oStart = ('O' in sec) ? sec.O : 0;
+    let idx = -1;
+    for(let i = oStart; i < lines.length && idx < 0; i++) if(nameRe.test(lines[i])) idx = i;
+    for(let i = 0; i < oStart && idx < 0; i++) if(nameRe.test(lines[i])) idx = i;
+
+    if(idx < 0){ newO.push(`${it.name} ${stamp}`); report.added.push(it.name); continue; }
+
+    const line = lines[idx];
+    const m = line.match(nameRe);
+    let p = m.index + m[1].length + m[2].length;
+    const sep = line.slice(p).match(/^\s*[:=]?\s*/)[0];
+    p += sep.length;
+    if(pos === 'front'){
+      const rest = line.slice(p);
+      const glue = rest.trim() ? ', ' : '';
+      const lead = sep.length ? '' : ' ';
+      lines[idx] = line.slice(0,p) + lead + stamp + glue + rest;
+    }else{
+      // 이전 값(들)의 끝을 찾아 그 뒤에 붙임: 값(날짜), 값(날짜) ... 연속 구간
+      let q = p, first = true;
+      while(true){
+        const seg = line.slice(q);
+        const lead = first ? '' : (seg.match(/^\s*[,/→]\s*/) || [''])[0];
+        if(!first && !lead) break;
+        const vm = seg.slice(lead.length).match(VALUE_RE);
+        if(!vm) break;
+        q += lead.length + vm[0].length;
+        first = false;
+      }
+      if(q === p) lines[idx] = line.slice(0,p) + (sep.length ? '' : ' ') + stamp + (line.slice(p).trim() ? ', ' : '') + line.slice(p);
+      else lines[idx] = line.slice(0,q) + ', ' + stamp + line.slice(q);
+    }
+    report.updated.push(it.name);
+  }
+
+  const insertInto = (key, newLines) => {
+    if(!newLines.length) return;
+    const sec = findSections(lines);
+    const end = sectionEnd(lines, sec, key);
+    if(end >= 0) lines.splice(end, 0, ...newLines);
+    else lines.push(...(lines.length && lines[lines.length-1].trim() ? [''] : []), `[${key}]`, ...newLines);
+  };
+
+  insertInto('O', newO);
+  for(const k of ['A','P']){
+    const ln = notes.filter(n => n.sec === k).map(n => `(${dateStr}) ${n.text}`);
+    insertInto(k, ln);
+  }
+  const sNotes = notes.filter(n => n.sec === 'S').map(n => `(${dateStr}) ${n.text}`);
+  const oNotes = notes.filter(n => n.sec === 'O').map(n => `(${dateStr}) ${n.text}`);
+  insertInto('O', oNotes);
+  if(sNotes.length){
+    const sec = findSections(lines);
+    if('S' in sec) lines.splice(sec.S + 1, 0, ...sNotes);       // S 맨 앞
+    else lines.unshift(...sNotes);
+  }
+  return { text: lines.join('\n'), report };
+}
+
+/* ───────── Claude 호출 (스트리밍) ───────── */
+let controller = null;
+let lastRun = null;
+let resetting = false;
+
+function setBusy(busy){
+  ['genInitialBtn','genFollowBtn','mergeBtn','rerunBtn','copyBtn'].forEach(id => $(id).disabled = busy);
+  ['stopBtn1','stopBtn2'].forEach(id => $(id).disabled = !busy);
+  $('stopBtn2').style.display = busy && currentTab() === 'follow' ? 'block' : 'none';
+  $('genInitialBtn').firstChild.textContent = busy ? '작성 중... ' : 'SOAP 생성 ';
+}
+
+function friendlyHttpError(status, msg){
+  if(status === 401) return 'API 키가 올바르지 않아요. 설정에서 키를 확인하세요.';
+  if(status === 403) return '이 키로는 사용할 수 없는 요청이에요: ' + msg;
+  if(status === 404) return '모델을 찾을 수 없어요. 설정에서 다른 모델을 골라 보세요.';
+  if(status === 429) return '요청이 너무 많아요. 잠시 후 다시 시도하세요.';
+  if(status === 529 || status >= 500) return 'Anthropic 서버가 혼잡해요. 잠시 후 다시 시도하세요.';
+  return msg || ('요청 실패 (HTTP ' + status + ')');
+}
+
+async function runClaude(mode){
+  const apiKey = $('apiKey').value.trim();
+  if(!apiKey){ $('settings').open = true; $('apiKey').scrollIntoView({block:'center'}); $('apiKey').focus(); setStatus('설정에서 Anthropic API 키를 입력하세요.', 'err'); return; }
+
+  let system, userText, maxTokens;
+  if(mode === 'initial'){
+    const note = $('note').value.trim();
+    if(!note){ setStatus('임상정보를 입력하세요.', 'err'); $('note').focus(); return; }
+    system = PROMPT_INITIAL; userText = note; maxTokens = 4000;
+  }else{
+    const prev = $('prevChart').value.trim(), add = $('todayAdd').value.trim();
+    if(!prev || !add){ setStatus('이전 차트와 오늘 추가할 내용을 모두 입력하세요.', 'err'); return; }
+    const dateStr = formatDate($('visitDate').value, $('dateFmt').value);
+    const posText = $('insertPos').value === 'front' ? '이전 값의 앞' : '이전 값의 뒤';
+    system = PROMPT_FOLLOW;
+    userText = `오늘 날짜 표기: ${dateStr}\n새 결과 위치: ${posText}\n\n<이전차트>\n${prev}\n</이전차트>\n\n<오늘추가>\n${add}\n</오늘추가>`;
+    maxTokens = 8000;
+  }
+
+  let masked = 0;
+  if($('maskPII').checked){ const r = maskPII(userText); userText = r.text; masked = r.count; }
+
+  if($('saveKey').checked) store.set(KEY_STORE, apiKey);
+  const model = $('model').value;
+  lastRun = mode;
+
+  controller = new AbortController();
+  const result = $('result');
+  result.value = '';
+  setBusy(true);
+  const t0 = performance.now();
+  let firstTokenAt = 0, stopReason = '', idleTimer = null, timedOut = false;
+  const resetIdle = () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+  };
+  const tick = setInterval(() => {
+    if(!firstTokenAt) setStatus(`작성 중... ${((performance.now()-t0)/1000).toFixed(1)}초`);
+  }, 200);
+  resetIdle();
+
+  try{
+    const body = {
+      model, max_tokens: maxTokens, stream: true,
+      cache_control: { type: 'ephemeral' },
+      system,
+      messages: [{ role: 'user', content: userText }],
+      ...MODEL_CONFIG[model]
+    };
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2026-10-21',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if(!res.ok){
+      const raw = await res.text();
+      let msg = '';
+      try{ msg = JSON.parse(raw)?.error?.message || ''; }catch{ msg = raw.slice(0, 200); }
+      throw new Error(friendlyHttpError(res.status, msg));
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '', text = '';
+    while(true){
+      const { value, done } = await reader.read();
+      if(done) break;
+      resetIdle();
+      buf += decoder.decode(value, { stream: true });
+      let cut;
+      while((cut = buf.indexOf('\n\n')) >= 0){
+        const chunk = buf.slice(0, cut); buf = buf.slice(cut + 2);
+        const dataLine = chunk.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('');
+        if(!dataLine) continue;
+        let ev; try{ ev = JSON.parse(dataLine); }catch{ continue; }
+        if(ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta'){
+          if(!firstTokenAt){ firstTokenAt = performance.now(); setStatus('받는 중...'); }
+          text += ev.delta.text;
+          result.value = text;
+          result.scrollTop = result.scrollHeight;
+        }else if(ev.type === 'message_delta' && ev.delta?.stop_reason){
+          stopReason = ev.delta.stop_reason;
+        }else if(ev.type === 'error'){
+          throw new Error(friendlyHttpError(ev.error?.type === 'overloaded_error' ? 529 : 0, ev.error?.message));
+        }
+      }
+    }
+
+    result.value = stripMarkdown(text).trim();
+    const secs = ((performance.now()-t0)/1000).toFixed(1);
+    const maskNote = masked ? ` · 개인정보 ${masked}건 가림` : '';
+
+    if(stopReason === 'refusal'){
+      setStatus('모델이 이 요청을 처리하지 않았어요. 입력을 조금 바꾸거나 다른 모델로 시도하세요.', 'err');
+    }else if(stopReason === 'max_tokens'){
+      setStatus(`⚠️ 결과가 길어서 중간에 잘렸어요 (${secs}초). 끝부분을 확인하세요.${maskNote}`, 'warn');
+    }else if(!result.value){
+      setStatus('빈 결과가 왔어요. 다시 시도하세요.', 'warn');
+    }else{
+      let msg = `완료 ${secs}초 (첫 글자 ${((firstTokenAt-t0)/1000).toFixed(1)}초)${maskNote}`;
+      if($('autoCopy').checked && await copyText(result.value)) msg += ' · 복사됨';
+      setStatus(msg);
+    }
+  }catch(err){
+    if(resetting){
+      setStatus('');
+    }else if(err.name === 'AbortError'){
+      setStatus(timedOut ? '응답이 45초 동안 없어서 중단했어요. 네트워크를 확인하고 다시 시도하세요.' : '중지했어요.', timedOut ? 'err' : 'warn');
+    }else if(err instanceof TypeError){
+      setStatus('네트워크 오류예요. 인터넷 연결을 확인하세요.', 'err');
+    }else{
+      setStatus('오류: ' + err.message, 'err');
+    }
+  }finally{
+    clearInterval(tick); clearTimeout(idleTimer);
+    if(resetting){ result.value = ''; resetting = false; }
+    controller = null;
+    setBusy(false);
+    $('copyBtn').disabled = !result.value.trim();
+    $('rerunBtn').disabled = !lastRun;
+  }
+}
+
+/* ───────── 화면 동작 ───────── */
+function focusInput(){
+  const el = currentTab() === 'follow' ? ($('prevChart').value.trim() ? $('todayAdd') : $('prevChart')) : $('note');
+  el.focus();
+}
+
+/* 새 환자: 진행 중이면 중단하고 입력·결과를 모두 비움 */
+function newPatient(){
+  if(controller){ resetting = true; controller.abort(); }
+  ['note','prevChart','todayAdd','result'].forEach(id => $(id).value = '');
+  saveDrafts();
+  $('visitDate').value = todayISO();
+  lastRun = null;
+  $('copyBtn').disabled = true; $('rerunBtn').disabled = true;
+  setStatus('새 환자 — 입력란이 비워졌어요.');
+  focusInput();
+}
+
+function currentTab(){ return $('tabFollow').getAttribute('aria-selected') === 'true' ? 'follow' : 'initial'; }
+function showTab(which){
+  const f = which === 'follow';
+  $('tabInitial').setAttribute('aria-selected', String(!f));
+  $('tabFollow').setAttribute('aria-selected', String(f));
+  $('panelInitial').hidden = f;
+  $('panelFollow').hidden = !f;
+  store.sset('opd_tab', which);
+  focusInput();
+}
+
+function doMerge(){
+  const prev = $('prevChart').value, add = $('todayAdd').value.trim();
+  if(!prev.trim() || !add){ setStatus('이전 차트와 오늘 추가할 내용을 모두 입력하세요.', 'err'); return; }
+  const dateStr = formatDate($('visitDate').value, $('dateFmt').value);
+  const { text, report } = instantMerge(prev, add, dateStr, $('insertPos').value);
+  $('result').value = text;
+  lastRun = 'merge';
+  $('copyBtn').disabled = false; $('rerunBtn').disabled = false;
+  const parts = [];
+  if(report.updated.length) parts.push(`기존 줄에 추가: ${report.updated.join(', ')}`);
+  if(report.added.length) parts.push(`새 줄 추가: ${report.added.join(', ')}`);
+  const msg = '⚡ 병합 완료' + (parts.length ? ' — ' + parts.join(' / ') : '');
+  if($('autoCopy').checked) copyText(text).then(ok => setStatus(msg + (ok ? ' · 복사됨' : '')));
+  else setStatus(msg);
+}
+
+/* 입력 초안은 이 탭에서만 유지 (탭을 닫으면 사라짐) */
+const DRAFT_FIELDS = ['note','prevChart','todayAdd'];
+function saveDrafts(){ DRAFT_FIELDS.forEach(id => store.sset('opd_draft_' + id, $(id).value)); }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const k = store.get(KEY_STORE);
+  if(k) $('apiKey').value = k;
+  const m = store.get('opd_model'); if(m && MODEL_CONFIG[m]) $('model').value = m;
+  const fmt = store.get('opd_datefmt'); if(fmt) $('dateFmt').value = fmt;
+  const pos = store.get('opd_pos'); if(pos) $('insertPos').value = pos;
+  if(store.get('opd_savekey') === '0') $('saveKey').checked = false;
+  if(store.get('opd_mask') === '0') $('maskPII').checked = false;
+  if(store.get('opd_autocopy') === '0') $('autoCopy').checked = false;
+  $('visitDate').value = todayISO();
+  DRAFT_FIELDS.forEach(id => { const v = store.sget('opd_draft_' + id); if(v) $(id).value = v; });
+  showTab(store.sget('opd_tab') === 'follow' ? 'follow' : 'initial');
+  if(!k) setStatus('처음 쓰실 때는 맨 아래 ⚙️ 설정에 Anthropic API 키를 넣어 주세요. ⚡ 즉시 병합은 키 없이 돼요.', 'warn');
+
+  $('tabInitial').onclick = () => showTab('initial');
+  $('tabFollow').onclick = () => showTab('follow');
+  $('genInitialBtn').onclick = () => runClaude('initial');
+  $('genFollowBtn').onclick = () => runClaude('follow');
+  $('mergeBtn').onclick = doMerge;
+  $('stopBtn1').onclick = $('stopBtn2').onclick = () => controller && controller.abort();
+  $('rerunBtn').onclick = () => lastRun === 'merge' ? doMerge() : lastRun && runClaude(lastRun);
+  $('copyBtn').onclick = async () => {
+    const t = $('result').value.trim();
+    if(!t) return;
+    setStatus(await copyText(t) ? '복사 완료' : '복사에 실패했어요. 결과를 길게 눌러 직접 복사하세요.', 'warn');
+    if($('status').textContent === '복사 완료') $('status').className = 'status';
+  };
+  $('newPatientBtn1').onclick = $('newPatientBtn2').onclick = newPatient;
+  $('deleteKeyBtn').onclick = () => { store.del(KEY_STORE); $('apiKey').value = ''; setStatus('저장된 API 키를 삭제했어요.'); };
+  $('saveKey').onchange = () => { store.set('opd_savekey', $('saveKey').checked ? '1' : '0'); if(!$('saveKey').checked) store.del(KEY_STORE); };
+  $('model').onchange = () => store.set('opd_model', $('model').value);
+  $('dateFmt').onchange = () => store.set('opd_datefmt', $('dateFmt').value);
+  $('insertPos').onchange = () => store.set('opd_pos', $('insertPos').value);
+  $('maskPII').onchange = () => store.set('opd_mask', $('maskPII').checked ? '1' : '0');
+  $('autoCopy').onchange = () => store.set('opd_autocopy', $('autoCopy').checked ? '1' : '0');
+  DRAFT_FIELDS.forEach(id => $(id).addEventListener('input', saveDrafts));
+  $('result').addEventListener('input', () => { $('copyBtn').disabled = !$('result').value.trim(); });
+
+  document.addEventListener('keydown', e => {
+    if(e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN'){ e.preventDefault(); newPatient(); return; }
+    if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+      e.preventDefault();
+      if(controller) return;
+      if(currentTab() === 'initial') runClaude('initial'); else doMerge();
+    }
+  });
+});
+</script>
+</body>
+</html>
